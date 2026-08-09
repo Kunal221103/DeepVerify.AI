@@ -1,0 +1,11 @@
+# Python 
+venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+#Generated files
+uploads/
+temp/
