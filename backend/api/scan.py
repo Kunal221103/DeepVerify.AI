@@ -6,7 +6,6 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from services.analyzer import analyze
 from services.history_manager import save_scan
-from services.report_generator import generate_report
 
 router = APIRouter(
     prefix="/api",
@@ -80,66 +79,50 @@ async def scan(file: UploadFile = File(...)):
         await file.close()
 
     try:
-
         result = analyze(filepath, media_type)
-
-        if not isinstance(result, dict):
-            raise ValueError("analyze() must return a dictionary.")
-
-        score = result.get("score")
-
-        if score is None:
-            raise ValueError("Analysis returned no score.")
-
-        if score >= 90:
-            verdict = "AUTHENTIC"
-
-        elif score >= 75:
-            verdict = "SUSPICIOUS"
-
-        else:
-            verdict = "DEEPFAKE"
-
-        result["verdict"] = verdict
-        result["scan_id"] = scan_id
-
-        # Generate PDF report
-        report_path = generate_report(
-            scan_id=scan_id,
-            original_name=file.filename,
-            media_type=media_type,
-            result=result
-        )
-        
-        # Add report path to result
-        result["report"] = report_path
-        
-        # Save complete scan information
-        save_scan(
-            filename,
-            file.filename,
-            media_type,
-            filepath,
-            result
-        )
-
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-
-        print("\n========== SCAN ERROR ==========")
-        traceback.print_exc()
-        print("================================\n")
-
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Analysis failed: {str(e)}"
-        ) from e
+            detail=f"Analysis failed: {str(exc)}"
+        ) from exc
 
-    finally:
+    if not isinstance(result, dict):
+        raise ValueError("analyze() must return a dictionary.")
 
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    score = result.get("score")
+
+    if score is None:
+        raise ValueError("Analysis returned no score.")
+
+    # ==========================================================
+    # FINAL VERDICT
+    # ==========================================================
+
+    if media_type == "image":
+        verdict = result.get(
+            "verdict",
+            "SUSPICIOUS"
+        )
+        final_confidence = result.get(
+            "score",
+            0
+        )
+    else:
+        if score >= 90:
+            verdict = "AUTHENTIC"
+        elif score >= 75:
+            verdict = "SUSPICIOUS"
+        else:
+            verdict = "DEEPFAKE"
+        final_confidence = score
+
+    result["verdict"] = verdict
+    result["score"] = round(
+        final_confidence,
+        2
+    )
+    result["scan_id"] = scan_id
+    result["filename"] = file.filename
+    result["media_type"] = media_type
+
+    return result

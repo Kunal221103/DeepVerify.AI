@@ -5,35 +5,75 @@ import tempfile
 
 def calculate_ela_score(image_path, quality=90):
     """
-    Returns:
-        ela_score (0-100)
-        ela_image_path
+    Calculate Error Level Analysis (ELA).
+
+    Higher difference means more JPEG recompression
+    difference.
+
+    This is a forensic signal only. It is NOT itself
+    an authenticity probability.
     """
 
-    image = Image.open(image_path).convert("RGB")
+    image = Image.open(
+        image_path
+    ).convert("RGB")
 
     temp_file = tempfile.NamedTemporaryFile(
         suffix=".jpg",
         delete=False
-    ).name
+    )
 
-    image.save(temp_file, "JPEG", quality=quality)
+    temp_path = temp_file.name
 
-    compressed = Image.open(temp_file)
+    temp_file.close()
 
-    diff = ImageChops.difference(image, compressed)
+    try:
 
-    extrema = diff.getextrema()
+        image.save(
+            temp_path,
+            "JPEG",
+            quality=quality
+        )
 
-    max_diff = max([x[1] for x in extrema])
+        compressed = Image.open(
+            temp_path
+        ).convert("RGB")
 
-    if max_diff == 0:
-        ela_score = 100
+        diff = ImageChops.difference(
+            image,
+            compressed
+        )
 
-    else:
-        ela_score = max(0, 100 - max_diff)
+        extrema = diff.getextrema()
 
-    return {
-        "ela_score": round(ela_score, 2),
-        "ela_image": temp_file
-    }
+        max_diff = max(
+            channel[1]
+            for channel in extrema
+        )
+
+        mean_diff = sum(
+            channel[0]
+            for channel in extrema
+        ) / len(extrema)
+
+        return {
+
+            "ela_score": round(
+                float(max_diff),
+                2
+            ),
+
+            "ela_mean_difference": round(
+                float(mean_diff),
+                2
+            ),
+
+            "quality": quality
+
+        }
+
+    finally:
+
+        if os.path.exists(temp_path):
+
+            os.remove(temp_path)

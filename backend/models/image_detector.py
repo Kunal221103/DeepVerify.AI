@@ -1,23 +1,108 @@
 from ai.inference import predict
+from ai.second_detector import predict_second
+from ai.sdxl_detector import predict_sdxl
 
 
 def detect_image(image_path):
 
-    result = predict(image_path)
+    # ======================================================
+    # PRIMARY MODEL
+    # ======================================================
 
-    real_probability = result["real_probability"]
-    fake_probability = result["fake_probability"]
+    primary = predict(image_path)
 
-    # Base AI model score
-    image_score = real_probability
+    # ======================================================
+    # SECONDARY MODEL
+    # ======================================================
 
-    if fake_probability > real_probability:
+    secondary_predictions = predict_second(
+        image_path
+    )
 
-        verdict_signal = "AI-generated"
+    secondary_real = 0.0
+    secondary_fake = 0.0
+
+    for prediction in secondary_predictions:
+
+        label = prediction["label"].lower()
+
+        confidence = float(
+            prediction["confidence"]
+        )
+
+        if label in (
+            "real",
+            "human"
+        ):
+
+            secondary_real = confidence
+
+        elif label in (
+            "ai_generated",
+            "ai-generated",
+            "ai generated"
+        ):
+
+            secondary_fake = confidence
+
+    # ======================================================
+    # SDXL DETECTOR
+    # ======================================================
+
+    sdxl_predictions = predict_sdxl(
+        image_path
+    )
+
+    sdxl_real = 0.0
+    sdxl_fake = 0.0
+
+    for prediction in sdxl_predictions:
+
+        label = prediction["label"].lower()
+
+        confidence = float(
+            prediction["confidence"]
+        )
+
+        if label in (
+            "human",
+            "real"
+        ):
+
+            sdxl_real = confidence
+
+        elif label in (
+            "artificial",
+            "fake",
+            "ai-generated",
+            "ai_generated"
+        ):
+
+            sdxl_fake = confidence
+
+    # ======================================================
+    # PRIMARY IMAGE SCORE
+    #
+    # SDXL is currently our strongest validated detector.
+    # ======================================================
+
+    image_score = sdxl_real
+
+    # ======================================================
+    # VERDICT SIGNAL
+    # ======================================================
+
+    if sdxl_fake >= 70:
+
+        prediction = "AI-generated"
+
+    elif sdxl_fake >= 45:
+
+        prediction = "Suspicious"
 
     else:
 
-        verdict_signal = "human"
+        prediction = "Human"
 
     return {
 
@@ -27,25 +112,53 @@ def detect_image(image_path):
         ),
 
         "real_probability": round(
-            real_probability,
+            sdxl_real,
             2
         ),
 
         "fake_probability": round(
-            fake_probability,
+            sdxl_fake,
             2
         ),
 
-        "prediction": verdict_signal,
+        "prediction": prediction,
 
-        "confidence": result["confidence"],
-
-        "model": (
-            "CapCheck AI vs Human "
-            "Generated Image Detection"
+        "confidence": round(
+            max(
+                sdxl_real,
+                sdxl_fake
+            ),
+            2
         ),
 
-        "raw_predictions": result[
-            "raw_predictions"
-        ]
+        "primary_model": primary,
+
+        "secondary_model": {
+
+            "real_probability": round(
+                secondary_real,
+                2
+            ),
+
+            "fake_probability": round(
+                secondary_fake,
+                2
+            )
+
+        },
+
+        "sdxl_model": {
+
+            "real_probability": round(
+                sdxl_real,
+                2
+            ),
+
+            "fake_probability": round(
+                sdxl_fake,
+                2
+            )
+
+        }
+
     }

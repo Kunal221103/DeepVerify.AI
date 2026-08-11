@@ -70,30 +70,104 @@ def analyze(filepath, media_type):
     # ==========================================================
     elif media_type == "image":
 
-        image = detect_image(filepath)
+        # ======================================================
+        # IMAGE MODELS
+        # ======================================================
 
-        ela = calculate_ela_score(filepath)
+        from ai.inference import predict
+        from ai.second_detector import predict_second
+        from ai.third_detector import predict_third
+        from ai.ensemble import calculate_ensemble
 
-        noise = calculate_noise_score(filepath)
+        model1 = predict(filepath)
 
-        score = (
-            image["real_probability"] * 0.60 +
-            metadata["metadata_score"] * 0.10 +
-            ela["ela_score"] * 0.15 +
-            noise["noise_score"] * 0.15
+        model2 = predict_second(filepath)
+
+        model3 = predict_third(filepath)
+
+        ensemble = calculate_ensemble(
+            model1,
+            model2,
+            model3,
         )
 
+        # ======================================================
+        # FORENSIC ANALYSIS
+        # ======================================================
+
+        ela = calculate_ela_score(
+            filepath
+        )
+
+        noise = calculate_noise_score(
+            filepath
+        )
+
+        # metadata was already calculated above
+        # and should NOT be calculated twice.
+
+        # ======================================================
+        # FINAL IMAGE RESULT
+        # ======================================================
+
         return {
+
             "media": "image",
-            "score": round(score, 2),
-            "image": image,
+
+            "score": ensemble["score"],
+
+            "verdict": ensemble["verdict"],
+
+            "real_probability": ensemble[
+                "real_probability"
+            ],
+
+            "fake_probability": ensemble[
+                "fake_probability"
+            ],
+
+            "image": {
+
+                "prediction": ensemble[
+                    "verdict"
+                ],
+
+                "real_probability": ensemble[
+                    "real_probability"
+                ],
+
+                "fake_probability": ensemble[
+                    "fake_probability"
+                ],
+
+                "confidence": ensemble[
+                    "score"
+                ],
+
+                "model_evidence": ensemble[
+                    "model_evidence"
+                ],
+            },
+
             "metadata": metadata,
+
             "ela": ela,
-            "noise": noise
+
+            "noise": noise,
+
+            "forensic": {
+
+                "ela": ela,
+
+                "noise": noise,
+
+                "metadata": metadata,
+            },
         }
 
     # ==========================================================
     # UNKNOWN
     # ==========================================================
+
     else:
         raise ValueError(f"Unsupported media type: {media_type}")

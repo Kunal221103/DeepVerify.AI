@@ -1,57 +1,62 @@
+from typing import Callable, cast
+
 import cv2
 import numpy as np
 
 
 def calculate_noise_score(image_path):
     """
-    Estimate image noise using Laplacian variance.
+    Estimate high-frequency image detail using
+    Laplacian variance.
 
-    Returns:
-        noise_score (0-100)
-        variance
+    This is a forensic signal and should NOT be
+    interpreted directly as real/fake probability.
     """
 
-    image = cv2.imread(image_path)
+    imread = getattr(cv2, "imread", None)
+    if not callable(imread):
+        raise AttributeError("OpenCV cv2.imread is unavailable")
+
+    read_image: Callable[[str], object] = imread
+    image = read_image(image_path)
 
     if image is None:
-        raise ValueError(f"Cannot open image: {image_path}")
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        raise ValueError(
+            f"Cannot open image: {image_path}"
+        )
 
-    variance = cv2.Laplacian(
-        gray,
-        cv2.CV_64F
-    ).var()
+    color_code = getattr(cv2, "COLOR_BGR2GRAY", None)
 
-    # Normalize variance to a score
-    if variance >= 500:
-        score = 100
+    if color_code is None:
+        color_code = 6
 
-    elif variance >= 300:
-        score = 90
+    try:
+        gray = cv2.cvtColor(
+            image,
+            color_code
+        )
+    except (AttributeError, TypeError) as exc:
+        raise AttributeError("OpenCV cv2.cvtColor is unavailable") from exc
 
-    elif variance >= 200:
-        score = 80
+    # Use CV_64F if available in this cv2 build; fall back to numeric value (6)
+    ddepth = getattr(cv2, 'CV_64F', 6)
+    laplacian = getattr(cv2, 'Laplacian', None)
+    if not callable(laplacian):
+        raise AttributeError("OpenCV cv2.Laplacian is unavailable")
 
-    elif variance >= 120:
-        score = 70
-
-    elif variance >= 80:
-        score = 60
-
-    elif variance >= 50:
-        score = 50
-
-    elif variance >= 25:
-        score = 40
-
-    else:
-        score = 25
+    variance = laplacian(gray, ddepth).var()
 
     return {
 
-        "noise_score": round(score, 2),
+        "noise_variance": round(
+            float(variance),
+            2
+        ),
 
-        "noise_variance": round(float(variance), 2)
+        "noise_measurement": round(
+            float(variance),
+            2
+        )
 
     }

@@ -1,19 +1,22 @@
 import os
 from datetime import datetime
 
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-)
-from reportlab.pdfbase.pdfmetrics import stringWidth
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+except ImportError as e:
+    raise ImportError("reportlab is not installed. Install it with: pip install reportlab") from e
 
 
 REPORT_DIR = "reports"
@@ -796,16 +799,17 @@ def generate_report(
         if ela:
             forensic_rows.append(
                 analysis_row(
-                    "ELA Score",
+                    "ELA DIFFERENCE",
                     ela.get("ela_score")
                 )
+                    
             )
 
         if noise:
             forensic_rows.append(
                 analysis_row(
-                    "Noise Score",
-                    noise.get("noise_score")
+                    "Noise Variance",
+                    noise.get("noise_variance")
                 )
             )
 

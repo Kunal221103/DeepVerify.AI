@@ -1,4 +1,4 @@
-from ai.third_detector import predict_third
+from backend.ai.sdxl_detector import predict_third
 
 
 images = [
@@ -10,40 +10,23 @@ images = [
 
 for image in images:
 
-    print("\n===================================")
+    print("\n================================")
     print("IMAGE:", image)
-    print("===================================")
+    print("================================")
 
     try:
 
-        result = predict_third(image)
+        results = predict_third(image)
 
-        print(
-            "Prediction:",
-            result["prediction"]
-        )
+        for result in results:
 
-        print(
-            "Confidence:",
-            result["confidence"],
-            "%"
-        )
-
-        print(
-            "Real:",
-            result["real_probability"],
-            "%"
-        )
-
-        print(
-            "AI-generated:",
-            result["ai_generated_probability"],
-            "%"
-        )
+            print(
+                result["label"],
+                "->",
+                result["confidence"],
+                "%"
+            )
 
     except Exception as e:
 
-        print(
-            "ERROR:",
-            e
-        )
+        print("ERROR:", e)
