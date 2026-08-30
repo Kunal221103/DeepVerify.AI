@@ -1,0 +1,5 @@
+path,label
+real/clean_speech_001.wav,real
+real/phone_recording_001.mp3,real
+fake/tts_provider_a_001.wav,fake
+fake/voice_clone_001.mp3,fake

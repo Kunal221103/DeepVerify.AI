@@ -1,26 +1,26 @@
 import os
 from datetime import datetime
 
-try:
-    from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import mm
-    from reportlab.platypus import (
-        SimpleDocTemplate,
-        Paragraph,
-        Spacer,
-        Table,
-        TableStyle,
-    )
-    from reportlab.pdfbase.pdfmetrics import stringWidth
-except ImportError as e:
-    raise ImportError("reportlab is not installed. Install it with: pip install reportlab") from e
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.units import mm
 
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+
+# ============================================================
+# REPORT DIRECTORY
+# ============================================================
 
 REPORT_DIR = "reports"
-
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 
@@ -32,6 +32,7 @@ NAVY = colors.HexColor("#0F172A")
 DARK = colors.HexColor("#111827")
 SLATE = colors.HexColor("#475569")
 LIGHT_SLATE = colors.HexColor("#64748B")
+
 BORDER = colors.HexColor("#CBD5E1")
 LIGHT = colors.HexColor("#F8FAFC")
 WHITE = colors.white
@@ -63,6 +64,16 @@ def safe(value, default="--"):
     return str(value)
 
 
+def percentage(value):
+    if value is None:
+        return "--"
+
+    try:
+        return f"{float(value):.2f}%"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 def verdict_colors(verdict):
 
     verdict = str(verdict).upper()
@@ -71,9 +82,6 @@ def verdict_colors(verdict):
         return GREEN, GREEN_LIGHT
 
     if verdict == "DEEPFAKE":
-        return RED, RED_LIGHT
-
-    if verdict in ("AI GENERATED", "AI-GENERATED"):
         return RED, RED_LIGHT
 
     if verdict == "SUSPICIOUS":
@@ -88,18 +96,18 @@ def verdict_description(verdict):
 
     if verdict == "AUTHENTIC":
         return (
-            "The analysis indicates a high probability that the "
-            "submitted media is authentic."
+            "The analysis indicates a high probability that "
+            "the submitted media is authentic."
         )
 
     if verdict == "SUSPICIOUS":
         return (
-            "The analysis detected signals that require further "
+            "The analysis detected signals requiring further "
             "verification. The media should not be treated as "
             "confirmed authentic."
         )
 
-    if verdict in ("DEEPFAKE", "AI GENERATED", "AI-GENERATED"):
+    if verdict == "DEEPFAKE":
         return (
             "The analysis detected strong indicators associated "
             "with manipulated or AI-generated media."
@@ -129,9 +137,9 @@ def draw_header_footer(canvas, doc):
 
     width, height = A4
 
-    # Header line
     canvas.setStrokeColor(BLUE)
     canvas.setLineWidth(2)
+
     canvas.line(
         18 * mm,
         height - 16 * mm,
@@ -139,7 +147,6 @@ def draw_header_footer(canvas, doc):
         height - 16 * mm
     )
 
-    # Footer
     canvas.setStrokeColor(BORDER)
     canvas.setLineWidth(0.5)
 
@@ -156,7 +163,7 @@ def draw_header_footer(canvas, doc):
     canvas.drawString(
         18 * mm,
         9 * mm,
-        "DeepVerify AI • AI-Powered Media Authenticity Analysis"
+        "DeepVerify AI • Media Authenticity Analysis"
     )
 
     canvas.drawRightString(
@@ -169,193 +176,83 @@ def draw_header_footer(canvas, doc):
 
 
 # ============================================================
-# SCORE BAR
+# SECTION TITLE
 # ============================================================
 
-def score_bar(score):
+def section_title(text):
 
-    score = max(0, min(100, float(score)))
-
-    total_width = 150 * mm
-    bar_height = 7 * mm
-
-    filled_width = total_width * score / 100
-
-    data = [[""]]
-
-    table = Table(
-        data,
-        colWidths=[total_width],
-        rowHeights=[bar_height]
+    return Paragraph(
+        text,
+        ParagraphStyle(
+            "SectionTitle",
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=16,
+            textColor=NAVY,
+            spaceBefore=12,
+            spaceAfter=8
+        )
     )
-
-    table.setStyle(
-        TableStyle([
-            (
-                "BACKGROUND",
-                (0, 0),
-                (-1, -1),
-                colors.HexColor("#E2E8F0")
-            ),
-            (
-                "BOX",
-                (0, 0),
-                (-1, -1),
-                0,
-                colors.white
-            ),
-        ])
-    )
-
-    # Overlay using a nested table
-    filled = Table(
-        [[""]],
-        colWidths=[max(filled_width, 0.1)],
-        rowHeights=[bar_height]
-    )
-
-    filled.setStyle(
-        TableStyle([
-            (
-                "BACKGROUND",
-                (0, 0),
-                (-1, -1),
-                BLUE
-            )
-        ])
-    )
-
-    outer = Table(
-        [[filled]],
-        colWidths=[total_width],
-        rowHeights=[bar_height]
-    )
-
-    outer.setStyle(
-        TableStyle([
-            (
-                "BACKGROUND",
-                (0, 0),
-                (-1, -1),
-                colors.HexColor("#E2E8F0")
-            ),
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "MIDDLE"
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                0
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                0
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                0
-            ),
-        ])
-    )
-
-    return outer
 
 
 # ============================================================
-# METRIC CARD
+# INFO ROW
 # ============================================================
 
-def metric_card(title, value, subtitle=""):
+def info_row(label, value):
 
-    content = [
+    return [
         Paragraph(
-            title,
+            label,
             ParagraphStyle(
-                "metricTitle",
+                "InfoLabel",
                 fontName="Helvetica",
-                fontSize=8,
-                textColor=LIGHT_SLATE,
-                spaceAfter=4,
+                fontSize=9,
+                textColor=SLATE
             )
         ),
-        Paragraph(
-            str(value),
-            ParagraphStyle(
-                "metricValue",
-                fontName="Helvetica-Bold",
-                fontSize=16,
-                textColor=DARK,
-                spaceAfter=3,
-            )
-        ),
-    ]
 
-    if subtitle:
-        content.append(
-            Paragraph(
-                subtitle,
-                ParagraphStyle(
-                    "metricSubtitle",
-                    fontName="Helvetica",
-                    fontSize=7,
-                    textColor=LIGHT_SLATE,
-                )
+        Paragraph(
+            safe(value),
+            ParagraphStyle(
+                "InfoValue",
+                fontName="Helvetica-Bold",
+                fontSize=9,
+                textColor=DARK
             )
         )
+    ]
+
+
+# ============================================================
+# STANDARD TABLE
+# ============================================================
+
+def make_table(rows, widths):
 
     table = Table(
-        [[content]],
-        colWidths=[55 * mm],
-        rowHeights=[25 * mm]
+        rows,
+        colWidths=widths
     )
 
     table.setStyle(
         TableStyle([
+
+            ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+
             (
-                "BACKGROUND",
+                "ROWBACKGROUNDS",
                 (0, 0),
                 (-1, -1),
-                LIGHT
+                [WHITE, LIGHT]
             ),
-            (
-                "BOX",
-                (0, 0),
-                (-1, -1),
-                0.7,
-                BORDER
-            ),
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "MIDDLE"
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                10
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                10
-            ),
+
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ])
     )
 
@@ -363,31 +260,169 @@ def metric_card(title, value, subtitle=""):
 
 
 # ============================================================
-# ANALYSIS ROW
+# MODEL VALUE EXTRACTION
 # ============================================================
 
-def analysis_row(name, value):
+def extract_model_values(model_data):
 
-    return [
-        Paragraph(
-            name,
-            ParagraphStyle(
-                "analysisName",
-                fontName="Helvetica",
-                fontSize=9,
-                textColor=SLATE,
+    real = None
+    fake = None
+    prediction = None
+
+    if isinstance(model_data, dict):
+
+        real = model_data.get("real_probability")
+        fake = model_data.get("fake_probability")
+        prediction = model_data.get("predicted_label")
+
+        raw = model_data.get("raw_predictions")
+
+        if isinstance(raw, list):
+            model_data = raw
+
+    if isinstance(model_data, list):
+
+        for item in model_data:
+
+            if not isinstance(item, dict):
+                continue
+
+            label = str(
+                item.get("label", "")
+            ).lower()
+
+            confidence = item.get("confidence")
+
+            if confidence is None:
+                continue
+
+            if any(
+                word in label
+                for word in ["human", "real"]
+            ):
+                real = confidence
+
+            elif any(
+                word in label
+                for word in [
+                    "fake",
+                    "artificial",
+                    "ai",
+                    "generated"
+                ]
+            ):
+                fake = confidence
+
+    return prediction, real, fake
+
+
+# ============================================================
+# MODEL CARD
+# ============================================================
+
+def model_card(model_name, model_data):
+
+    prediction, real, fake = extract_model_values(
+        model_data
+    )
+
+    rows = [
+
+        [
+            Paragraph(
+                model_name,
+                ParagraphStyle(
+                    "ModelTitle",
+                    fontName="Helvetica-Bold",
+                    fontSize=10,
+                    textColor=NAVY
+                )
+            ),
+
+            Paragraph(
+                safe(prediction, "Analysis"),
+                ParagraphStyle(
+                    "ModelPrediction",
+                    fontName="Helvetica-Bold",
+                    fontSize=9,
+                    textColor=BLUE,
+                    alignment=TA_RIGHT
+                )
             )
-        ),
-        Paragraph(
-            safe(value),
-            ParagraphStyle(
-                "analysisValue",
-                fontName="Helvetica-Bold",
-                fontSize=9,
-                textColor=DARK,
+        ],
+
+        [
+            Paragraph(
+                "REAL",
+                ParagraphStyle(
+                    "RealLabel",
+                    fontSize=8,
+                    textColor=SLATE
+                )
+            ),
+
+            Paragraph(
+                percentage(real),
+                ParagraphStyle(
+                    "RealValue",
+                    fontName="Helvetica-Bold",
+                    fontSize=11,
+                    textColor=GREEN,
+                    alignment=TA_RIGHT
+                )
             )
-        ),
+        ],
+
+        [
+            Paragraph(
+                "FAKE / AI",
+                ParagraphStyle(
+                    "FakeLabel",
+                    fontSize=8,
+                    textColor=SLATE
+                )
+            ),
+
+            Paragraph(
+                percentage(fake),
+                ParagraphStyle(
+                    "FakeValue",
+                    fontName="Helvetica-Bold",
+                    fontSize=11,
+                    textColor=RED,
+                    alignment=TA_RIGHT
+                )
+            )
+        ]
     ]
+
+    table = Table(
+        rows,
+        colWidths=[
+            42 * mm,
+            38 * mm
+        ]
+    )
+
+    table.setStyle(
+        TableStyle([
+
+            ("BACKGROUND", (0, 0), (-1, -1), LIGHT),
+
+            ("BOX", (0, 0), (-1, -1), 0.7, BORDER),
+
+            ("LINEBELOW", (0, 0), (-1, 0), 0.5, BORDER),
+
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ])
+    )
+
+    return table
 
 
 # ============================================================
@@ -401,11 +436,9 @@ def generate_report(
     result
 ):
 
-    filename = f"{scan_id}.pdf"
-
     filepath = os.path.join(
         REPORT_DIR,
-        filename
+        f"{scan_id}.pdf"
     )
 
     score = get_score(result)
@@ -415,12 +448,20 @@ def generate_report(
         "UNKNOWN"
     )
 
-    verdict_color, verdict_background = verdict_colors(
-        verdict
+    real_probability = result.get(
+        "real_probability"
+    )
+
+    fake_probability = result.get(
+        "fake_probability"
     )
 
     generated_at = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
+        "%d %B %Y • %I:%M %p"
+    )
+
+    verdict_color, verdict_background = verdict_colors(
+        verdict
     )
 
     # ========================================================
@@ -428,14 +469,20 @@ def generate_report(
     # ========================================================
 
     doc = SimpleDocTemplate(
+
         filepath,
+
         pagesize=A4,
+
         rightMargin=18 * mm,
         leftMargin=18 * mm,
+
         topMargin=24 * mm,
         bottomMargin=20 * mm,
+
         title="DeepVerify AI Detection Report",
-        author="DeepVerify AI",
+
+        author="DeepVerify AI"
     )
 
     styles = getSampleStyleSheet()
@@ -444,11 +491,11 @@ def generate_report(
         "ReportTitle",
         parent=styles["Title"],
         fontName="Helvetica-Bold",
-        fontSize=25,
-        leading=30,
+        fontSize=24,
+        leading=29,
         textColor=NAVY,
         alignment=TA_LEFT,
-        spaceAfter=4,
+        spaceAfter=4
     )
 
     subtitle_style = ParagraphStyle(
@@ -457,17 +504,7 @@ def generate_report(
         fontSize=10,
         leading=14,
         textColor=LIGHT_SLATE,
-        spaceAfter=14,
-    )
-
-    section_style = ParagraphStyle(
-        "Section",
-        fontName="Helvetica-Bold",
-        fontSize=13,
-        leading=16,
-        textColor=NAVY,
-        spaceBefore=10,
-        spaceAfter=8,
+        spaceAfter=14
     )
 
     normal_style = ParagraphStyle(
@@ -475,38 +512,29 @@ def generate_report(
         fontName="Helvetica",
         fontSize=9,
         leading=13,
-        textColor=SLATE,
+        textColor=SLATE
     )
-
-    small_style = ParagraphStyle(
-        "Small",
-        fontName="Helvetica",
-        fontSize=7.5,
-        leading=10,
-        textColor=LIGHT_SLATE,
-    )
-
-    # ========================================================
-    # STORY
-    # ========================================================
 
     story = []
 
-    # --------------------------------------------------------
-    # BRAND HEADER
-    # --------------------------------------------------------
+    # ========================================================
+    # BRAND
+    # ========================================================
 
     brand = Table(
         [[
+
             Paragraph(
-                "<b>DEEPVERIFY</b> <font color='#2563EB'>AI</font>",
+                "<b>DEEPVERIFY</b> "
+                "<font color='#2563EB'>AI</font>",
                 ParagraphStyle(
                     "Brand",
                     fontName="Helvetica-Bold",
-                    fontSize=12,
-                    textColor=NAVY,
+                    fontSize=13,
+                    textColor=NAVY
                 )
             ),
+
             Paragraph(
                 "MEDIA AUTHENTICITY REPORT",
                 ParagraphStyle(
@@ -514,9 +542,10 @@ def generate_report(
                     fontName="Helvetica-Bold",
                     fontSize=7,
                     textColor=BLUE,
-                    alignment=TA_RIGHT,
+                    alignment=TA_RIGHT
                 )
             )
+
         ]],
         colWidths=[
             90 * mm,
@@ -528,9 +557,7 @@ def generate_report(
         TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LEFTPADDING", (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ("TOPPADDING", (0, 0), (-1, -1), 0),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0)
         ])
     )
 
@@ -546,41 +573,41 @@ def generate_report(
 
     story.append(
         Paragraph(
-            "AI-powered analysis of uploaded media",
+            "AI-powered multi-model media authenticity analysis",
             subtitle_style
         )
     )
 
-    # --------------------------------------------------------
-    # VERDICT HERO CARD
-    # --------------------------------------------------------
+    # ========================================================
+    # FINAL VERDICT
+    # ========================================================
 
-    verdict_block = Table(
+    verdict_table = Table(
         [[
+
             Paragraph(
                 "<font size='8'>FINAL VERDICT</font><br/>"
-                f"<font size='23'><b>{verdict}</b></font>",
+                f"<font size='22'><b>{verdict}</b></font>",
                 ParagraphStyle(
                     "VerdictHero",
                     fontName="Helvetica",
-                    fontSize=9,
-                    leading=22,
                     textColor=verdict_color,
+                    leading=22
                 )
             ),
 
             Paragraph(
-                f"<font size='8'>AUTHENTICITY SCORE</font><br/>"
-                f"<font size='26'><b>{score:.2f}%</b></font>",
+                "<font size='8'>FINAL ANALYSIS SCORE</font><br/>"
+                f"<font size='25'><b>{score:.2f}%</b></font>",
                 ParagraphStyle(
                     "ScoreHero",
                     fontName="Helvetica",
-                    fontSize=9,
-                    leading=24,
                     textColor=NAVY,
                     alignment=TA_RIGHT,
+                    leading=24
                 )
             )
+
         ]],
         colWidths=[
             85 * mm,
@@ -588,20 +615,23 @@ def generate_report(
         ]
     )
 
-    verdict_block.setStyle(
+    verdict_table.setStyle(
         TableStyle([
+
             (
                 "BACKGROUND",
                 (0, 0),
                 (0, 0),
                 verdict_background
             ),
+
             (
                 "BACKGROUND",
                 (1, 0),
                 (1, 0),
                 LIGHT
             ),
+
             (
                 "BOX",
                 (0, 0),
@@ -609,44 +639,46 @@ def generate_report(
                 0.8,
                 BORDER
             ),
+
             (
                 "VALIGN",
                 (0, 0),
                 (-1, -1),
                 "MIDDLE"
             ),
+
             (
                 "LEFTPADDING",
                 (0, 0),
                 (-1, -1),
                 14
             ),
+
             (
                 "RIGHTPADDING",
                 (0, 0),
                 (-1, -1),
                 14
             ),
+
             (
                 "TOPPADDING",
                 (0, 0),
                 (-1, -1),
-                10
+                12
             ),
+
             (
                 "BOTTOMPADDING",
                 (0, 0),
                 (-1, -1),
-                10
-            ),
+                12
+            )
         ])
     )
 
-    story.append(verdict_block)
-    story.append(Spacer(1, 6))
-
-    story.append(score_bar(score))
-    story.append(Spacer(1, 5))
+    story.append(verdict_table)
+    story.append(Spacer(1, 8))
 
     story.append(
         Paragraph(
@@ -655,410 +687,705 @@ def generate_report(
         )
     )
 
-    story.append(Spacer(1, 12))
+    # ========================================================
+    # PROBABILITY
+    # ========================================================
 
-    # --------------------------------------------------------
-    # FILE INFORMATION
-    # --------------------------------------------------------
-
-    story.append(
-        Paragraph(
-            "Scan Information",
-            section_style
-        )
-    )
-
-    scan_data = [
-        analysis_row("Scan ID", scan_id),
-        analysis_row("File Name", original_name),
-        analysis_row("Media Type", media_type.upper()),
-        analysis_row("Generated", generated_at),
-    ]
-
-    scan_table = Table(
-        scan_data,
-        colWidths=[
-            45 * mm,
-            125 * mm
-        ],
-        repeatRows=0
-    )
-
-    scan_table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (0, -1), LIGHT),
-            ("BACKGROUND", (1, 0), (1, -1), WHITE),
-            ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ])
-    )
-
-    story.append(scan_table)
-
-    # --------------------------------------------------------
-    # IMAGE ANALYSIS
-    # --------------------------------------------------------
-
-    image = result.get("image")
-
-    if image:
+    if (
+        real_probability is not None
+        or fake_probability is not None
+    ):
 
         story.append(
-            Paragraph(
-                "Image Analysis",
-                section_style
+            section_title(
+                "Probability Assessment"
             )
         )
 
-        image_metrics = [
-            metric_card(
-                "AI IMAGE SCORE",
-                safe(image.get("image_score"))
-            ),
-            metric_card(
-                "REAL PROBABILITY",
-                f"{safe(image.get('real_probability'))}%",
-            ),
-            metric_card(
-                "FAKE PROBABILITY",
-                f"{safe(image.get('fake_probability'))}%",
-            ),
-        ]
+        probability_table = Table(
+            [[
 
-        image_cards = Table(
-            [image_metrics],
+                Paragraph(
+                    "<font size='8'>REAL PROBABILITY</font><br/>"
+                    f"<font size='18'><b>"
+                    f"{percentage(real_probability)}"
+                    f"</b></font>",
+                    ParagraphStyle(
+                        "RealProbability",
+                        textColor=GREEN,
+                        leading=20
+                    )
+                ),
+
+                Paragraph(
+                    "<font size='8'>FAKE PROBABILITY</font><br/>"
+                    f"<font size='18'><b>"
+                    f"{percentage(fake_probability)}"
+                    f"</b></font>",
+                    ParagraphStyle(
+                        "FakeProbability",
+                        textColor=RED,
+                        alignment=TA_RIGHT,
+                        leading=20
+                    )
+                )
+
+            ]],
             colWidths=[
-                58 * mm,
-                58 * mm,
-                58 * mm,
+                85 * mm,
+                85 * mm
             ]
         )
 
-        image_cards.setStyle(
+        probability_table.setStyle(
             TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (0, 0),
+                    GREEN_LIGHT
+                ),
+
+                (
+                    "BACKGROUND",
+                    (1, 0),
+                    (1, 0),
+                    RED_LIGHT
+                ),
+
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.7,
+                    BORDER
+                ),
+
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE"
+                ),
+
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    12
+                ),
+
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    12
+                ),
+
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    10
+                ),
+
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    10
+                )
             ])
         )
 
-        story.append(image_cards)
-        story.append(Spacer(1, 8))
+        story.append(probability_table)
 
-        image_data = [
-            analysis_row(
-                "Resolution",
-                image.get("resolution")
-            )
-        ]
+    # ========================================================
+    # SCAN INFORMATION
+    # ========================================================
 
-        image_table = Table(
-            image_data,
-            colWidths=[
+    story.append(
+        section_title(
+            "Scan Information"
+        )
+    )
+
+    story.append(
+        make_table(
+            [
+                info_row("Scan ID", scan_id),
+                info_row("File Name", original_name),
+                info_row(
+                    "Media Type",
+                    str(media_type).upper()
+                ),
+                info_row(
+                    "Generated",
+                    generated_at
+                )
+            ],
+            [
                 45 * mm,
                 125 * mm
             ]
         )
+    )
 
-        image_table.setStyle(
+    # ========================================================
+    # IMAGE MODEL EVIDENCE
+    # ========================================================
+
+    models = result.get("models", {})
+
+    image_data = result.get(
+        "image",
+        {}
+    )
+
+    model_evidence = image_data.get(
+        "model_evidence",
+        {}
+    )
+
+    if not models:
+        models = model_evidence
+
+    if models:
+
+        story.append(
+            section_title(
+                "AI Model Evidence"
+            )
+        )
+
+        model1 = (
+            models.get("model_1")
+            if isinstance(models, dict)
+            else None
+        )
+
+        model2 = (
+            models.get("model_2")
+            if isinstance(models, dict)
+            else None
+        )
+
+        model3 = (
+            models.get("model_3")
+            if isinstance(models, dict)
+            else None
+        )
+
+        model_table = Table(
+            [[
+
+                model_card(
+                    "MODEL 1",
+                    model1
+                ),
+
+                model_card(
+                    "MODEL 2",
+                    model2
+                ),
+
+                model_card(
+                    "MODEL 3 • SDXL",
+                    model3
+                )
+
+            ]],
+            colWidths=[
+                56 * mm,
+                56 * mm,
+                56 * mm
+            ]
+        )
+
+        model_table.setStyle(
             TableStyle([
-                ("BACKGROUND", (0, 0), (0, -1), LIGHT),
-                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4)
             ])
         )
 
-        story.append(image_table)
+        story.append(model_table)
 
-    # --------------------------------------------------------
-    # FORENSIC ANALYSIS
-    # --------------------------------------------------------
+    # ========================================================
+    # IMAGE ANALYSIS
+    # ========================================================
+
+    if image_data:
+
+        story.append(
+            section_title(
+                "Image Analysis"
+            )
+        )
+
+        story.append(
+            make_table(
+                [
+                    info_row(
+                        "Prediction",
+                        image_data.get("prediction")
+                    ),
+
+                    info_row(
+                        "Confidence",
+                        percentage(
+                            image_data.get("confidence")
+                        )
+                    ),
+
+                    info_row(
+                        "Real Probability",
+                        percentage(
+                            image_data.get(
+                                "real_probability"
+                            )
+                        )
+                    ),
+
+                    info_row(
+                        "Fake Probability",
+                        percentage(
+                            image_data.get(
+                                "fake_probability"
+                            )
+                        )
+                    )
+                ],
+                [
+                    60 * mm,
+                    110 * mm
+                ]
+            )
+        )
+
+    # ========================================================
+    # METADATA
+    # ========================================================
+
+    metadata = result.get("metadata")
+
+    if metadata:
+
+        story.append(
+            section_title(
+                "Metadata Analysis"
+            )
+        )
+
+        metadata_rows = [
+
+            info_row(
+                "Metadata Score",
+                metadata.get(
+                    "metadata_score"
+                )
+            ),
+
+            info_row(
+                "File Size",
+                (
+                    f"{metadata.get('file_size')} bytes"
+                    if metadata.get("file_size") is not None
+                    else "--"
+                )
+            ),
+
+            info_row(
+                "Format",
+                metadata.get("format")
+            ),
+
+            info_row(
+                "Width",
+                metadata.get("width")
+            ),
+
+            info_row(
+                "Height",
+                metadata.get("height")
+            ),
+
+            info_row(
+                "EXIF Present",
+                (
+                    "Yes"
+                    if metadata.get("exif_present")
+                    else "No"
+                )
+            ),
+
+            info_row(
+                "EXIF Fields",
+                metadata.get("exif_fields")
+            ),
+        ]
+
+        if metadata.get("sha256"):
+
+            metadata_rows.append(
+                info_row(
+                    "SHA-256",
+                    metadata.get("sha256")
+                )
+            )
+
+        story.append(
+            make_table(
+                metadata_rows,
+                [
+                    55 * mm,
+                    115 * mm
+                ]
+            )
+        )
+
+    # ========================================================
+    # IMAGE FORENSICS
+    # ========================================================
 
     ela = result.get("ela")
     noise = result.get("noise")
-    metadata = result.get("metadata")
 
-    if ela or noise or metadata:
+    if ela or noise:
 
         story.append(
-            Paragraph(
-                "Forensic Analysis",
-                section_style
+            section_title(
+                "Forensic Analysis"
             )
         )
 
         forensic_rows = []
 
         if ela:
+
             forensic_rows.append(
-                analysis_row(
-                    "ELA DIFFERENCE",
+                info_row(
+                    "ELA Score",
                     ela.get("ela_score")
                 )
-                    
             )
 
         if noise:
+
             forensic_rows.append(
-                analysis_row(
+                info_row(
+                    "Noise Score",
+                    noise.get("noise_score")
+                )
+            )
+
+            forensic_rows.append(
+                info_row(
                     "Noise Variance",
                     noise.get("noise_variance")
                 )
             )
 
-            forensic_rows.append(
-                analysis_row(
-                    "Noise Variance",
-                    noise.get("noise_variance")
+        if forensic_rows:
+
+            story.append(
+                make_table(
+                    forensic_rows,
+                    [
+                        75 * mm,
+                        95 * mm
+                    ]
                 )
             )
 
-        if metadata:
-            forensic_rows.append(
-                analysis_row(
-                    "Metadata Score",
-                    metadata.get("metadata_score")
-                )
-            )
-
-            if metadata.get("file_size") is not None:
-                forensic_rows.append(
-                    analysis_row(
-                        "File Size",
-                        f"{metadata.get('file_size')} bytes"
-                    )
-                )
-
-        forensic_table = Table(
-            forensic_rows,
-            colWidths=[
-                75 * mm,
-                95 * mm
-            ]
-        )
-
-        forensic_table.setStyle(
-            TableStyle([
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [
-                    WHITE,
-                    LIGHT
-                ]),
-                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ])
-        )
-
-        story.append(forensic_table)
-
-    # --------------------------------------------------------
+    # ========================================================
     # VIDEO ANALYSIS
-    # --------------------------------------------------------
+    # ========================================================
 
     video = result.get("video")
 
     if video:
 
         story.append(
-            Paragraph(
-                "Video Analysis",
-                section_style
+            section_title(
+                "Video Analysis"
             )
         )
 
         video_rows = [
-            analysis_row(
-                "Face Score",
-                video.get("face_score")
+
+            info_row(
+                "Face / Authenticity Score",
+                percentage(
+                    video.get("face_score")
+                )
             ),
-            analysis_row(
+
+            info_row(
                 "Fake Probability",
-                video.get("fake_probability")
+                percentage(
+                    video.get("fake_probability")
+                )
             ),
+
+            info_row(
+                "Frames Analyzed",
+                video.get("frames_analyzed")
+            ),
+
+            info_row(
+                "Detection Model",
+                video.get("model")
+            )
         ]
 
-        video_table = Table(
-            video_rows,
-            colWidths=[
-                75 * mm,
-                95 * mm
-            ]
+        story.append(
+            make_table(
+                video_rows,
+                [
+                    75 * mm,
+                    95 * mm
+                ]
+            )
         )
 
-        video_table.setStyle(
-            TableStyle([
-                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [
-                    WHITE,
-                    LIGHT
-                ]),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ])
-        )
-
-        story.append(video_table)
-
-    # --------------------------------------------------------
+    # ========================================================
     # AUDIO ANALYSIS
-    # --------------------------------------------------------
+    # ========================================================
 
     audio = result.get("audio")
 
     if audio:
 
         story.append(
-            Paragraph(
-                "Audio Analysis",
-                section_style
+            section_title(
+                "Audio Analysis"
             )
         )
 
         audio_rows = [
-            analysis_row(
+
+            info_row(
                 "Voice Score",
-                audio.get("voice_score")
+                percentage(
+                    audio.get("voice_score")
+                )
             ),
-            analysis_row(
-                "MFCC",
-                audio.get("mfcc")
+
+            info_row(
+                "Real Probability",
+                percentage(
+                    audio.get("real_probability")
+                )
             ),
-            analysis_row(
-                "RMS",
-                audio.get("rms")
+
+            info_row(
+                "Fake Probability",
+                percentage(
+                    audio.get("fake_probability")
+                )
             ),
-            analysis_row(
-                "Zero Crossing Rate",
-                audio.get("zcr")
+
+            info_row(
+                "Duration",
+                (
+                    f"{audio.get('duration'):.2f} sec"
+                    if isinstance(
+                        audio.get("duration"),
+                        (int, float)
+                    )
+                    else audio.get("duration")
+                )
             ),
-            analysis_row(
-                "Spectral Centroid",
-                audio.get("spectral")
-            ),
+
+            info_row(
+                "Detection Model",
+                audio.get("model")
+            )
         ]
 
-        audio_table = Table(
-            audio_rows,
-            colWidths=[
-                75 * mm,
-                95 * mm
-            ]
+        # Include MFCC/RMS/ZCR only when your detector
+        # actually returns them.
+
+        if audio.get("mfcc") is not None:
+
+            audio_rows.append(
+                info_row(
+                    "MFCC",
+                    audio.get("mfcc")
+                )
+            )
+
+        if audio.get("rms") is not None:
+
+            audio_rows.append(
+                info_row(
+                    "RMS",
+                    audio.get("rms")
+                )
+            )
+
+        if audio.get("zcr") is not None:
+
+            audio_rows.append(
+                info_row(
+                    "Zero Crossing Rate",
+                    audio.get("zcr")
+                )
+            )
+
+        story.append(
+            make_table(
+                audio_rows,
+                [
+                    75 * mm,
+                    95 * mm
+                ]
+            )
         )
 
-        audio_table.setStyle(
-            TableStyle([
-                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [
-                    WHITE,
-                    LIGHT
-                ]),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ])
-        )
-
-        story.append(audio_table)
-
-    # --------------------------------------------------------
-    # LIPSYNC
-    # --------------------------------------------------------
+    # ========================================================
+    # LIP-SYNC ANALYSIS
+    # ========================================================
 
     lipsync = result.get("lipsync")
 
     if lipsync:
 
         story.append(
-            Paragraph(
-                "Lip-Sync Analysis",
-                section_style
+            section_title(
+                "Lip-Sync Analysis"
             )
         )
 
-        lip_table = Table(
-            [
-                analysis_row(
-                    "Lip-Sync Score",
-                    lipsync.get("lipsync_score")
-                ),
-                analysis_row(
-                    "Details",
-                    lipsync.get("details")
-                ),
-            ],
-            colWidths=[
-                75 * mm,
-                95 * mm
-            ]
+        lipsync_rows = [
+
+            info_row(
+                "Lip-Sync Score",
+                percentage(
+                    lipsync.get(
+                        "lipsync_score"
+                    )
+                )
+            ),
+
+            info_row(
+                "Frames Analyzed",
+                lipsync.get(
+                    "frames_analyzed"
+                )
+            ),
+
+            info_row(
+                "Mouth Motion",
+                lipsync.get(
+                    "mouth_motion"
+                )
+            ),
+
+            info_row(
+                "Details",
+                lipsync.get(
+                    "details"
+                )
+            )
+        ]
+
+        story.append(
+            make_table(
+                lipsync_rows,
+                [
+                    75 * mm,
+                    95 * mm
+                ]
+            )
         )
 
-        lip_table.setStyle(
-            TableStyle([
-                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
-                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [
-                    WHITE,
-                    LIGHT
-                ]),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ])
-        )
-
-        story.append(lip_table)
-
-    # --------------------------------------------------------
+    # ========================================================
     # DISCLAIMER
-    # --------------------------------------------------------
+    # ========================================================
 
-    story.append(Spacer(1, 15))
+    story.append(
+        Spacer(1, 15)
+    )
 
     disclaimer = Table(
         [[
+
             Paragraph(
-                "<b>Important:</b> DeepVerify AI provides an automated "
-                "analysis based on available forensic and AI signals. "
-                "Results should be treated as an assessment rather than "
-                "absolute proof of authenticity or manipulation.",
+                "<b>Important:</b> DeepVerify AI provides "
+                "automated analysis based on AI models and "
+                "forensic signals. Results should be treated "
+                "as an assessment rather than absolute proof "
+                "of authenticity or manipulation.",
                 ParagraphStyle(
                     "Disclaimer",
                     fontName="Helvetica",
                     fontSize=8,
                     leading=12,
-                    textColor=SLATE,
+                    textColor=SLATE
                 )
             )
+
         ]],
-        colWidths=[170 * mm]
+        colWidths=[
+            170 * mm
+        ]
     )
 
     disclaimer.setStyle(
         TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), LIGHT),
-            ("BOX", (0, 0), (-1, -1), 0.7, BORDER),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 9),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, -1),
+                LIGHT
+            ),
+
+            (
+                "BOX",
+                (0, 0),
+                (-1, -1),
+                0.7,
+                BORDER
+            ),
+
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                10
+            ),
+
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                10
+            ),
+
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                9
+            ),
+
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                9
+            )
         ])
     )
 
     story.append(disclaimer)
 
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 10))
 
     story.append(
         Paragraph(
@@ -1068,7 +1395,7 @@ def generate_report(
                 fontName="Helvetica-Bold",
                 fontSize=8,
                 textColor=BLUE,
-                alignment=TA_CENTER,
+                alignment=TA_CENTER
             )
         )
     )
@@ -1080,7 +1407,7 @@ def generate_report(
     doc.build(
         story,
         onFirstPage=draw_header_footer,
-        onLaterPages=draw_header_footer,
+        onLaterPages=draw_header_footer
     )
 
     return filepath

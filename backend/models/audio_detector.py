@@ -1,58 +1,120 @@
-from ai.audio.inference import predict
-
 import librosa
+
+from ai.audio.inference import predict
 
 
 def detect_audio(audio_path):
 
-    duration = librosa.get_duration(path=audio_path)
+    duration = librosa.get_duration(
+        path=audio_path
+    )
 
-    predictions = predict(audio_path)
+    result = predict(
+        audio_path
+    )
 
-    real_probability = 0
-    fake_probability = 0
 
-    for item in predictions:
-
-        label = str(item["label"]).lower()
-
-        confidence = float(item["confidence"])
-
-        if "bonafide" in label or "real" in label:
-            real_probability = confidence
-
-        elif "spoof" in label or "fake" in label:
-            fake_probability = confidence
-
-    if real_probability == 0 and fake_probability == 0:
-
-        best = max(
-            predictions,
-            key=lambda x: x["confidence"]
+    real_probability = float(
+        result.get(
+            "real_probability",
+            0
         )
+    )
 
-        if "spoof" in best["label"].lower():
+    fake_probability = float(
+        result.get(
+            "fake_probability",
+            0
+        )
+    )
 
-            fake_probability = best["confidence"]
-            real_probability = 100 - fake_probability
-
-        else:
-
-            real_probability = best["confidence"]
-            fake_probability = 100 - real_probability
 
     return {
 
-        "voice_score": round(real_probability, 2),
+        "voice_score": round(
+            real_probability,
+            2
+        ),
 
-        "real_probability": round(real_probability, 2),
+        "real_probability": round(
+            real_probability,
+            2
+        ),
 
-        "fake_probability": round(fake_probability, 2),
+        "fake_probability": round(
+            fake_probability,
+            2
+        ),
 
-        "duration": round(duration, 2),
+        "raw_fake_probability": result.get(
+            "raw_fake_probability",
+            fake_probability
+        ),
 
-        "model": "Vansh180/deepfake-audio-wav2vec2",
+        "audio_reliability": result.get(
+            "audio_reliability",
+            1.0
+        ),
 
-        "raw_predictions": predictions
+        "model_agreement": result.get(
+            "model_agreement",
+            1.0
+        ),
+
+        "duration": round(
+            duration,
+            2
+        ),
+
+        "segments_analyzed":
+            result.get(
+                "segments_analyzed",
+                0
+            ),
+
+        "mean_fake_probability":
+            result.get(
+                "mean_fake_probability",
+                0
+            ),
+
+        "median_fake_probability":
+            result.get(
+                "median_fake_probability",
+                0
+            ),
+
+        "high_fake_segments":
+            result.get(
+                "high_fake_segments",
+                0
+            ),
+
+        "fake_segment_ratio":
+            result.get(
+                "fake_segment_ratio",
+                0
+            ),
+
+        "suspicious_segments":
+            result.get(
+                "suspicious_segments",
+                0
+            ),
+
+        "suspicious_segment_ratio":
+            result.get(
+                "suspicious_segment_ratio",
+                0
+            ),
+
+        "segment_predictions":
+            result.get(
+                "segment_predictions",
+                []
+            ),
+
+        "model":
+            "Vansh180/deepfake-audio-wav2vec2"
 
     }

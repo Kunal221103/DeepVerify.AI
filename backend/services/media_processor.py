@@ -33,7 +33,7 @@ class MediaProcessor:
             frame_info = extract_frames(
                 filepath,
                 frame_folder,
-                max_frames=30,
+                max_frames=20,
             )
 
             audio_path = extract_audio(filepath)
