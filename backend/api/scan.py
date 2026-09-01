@@ -11,6 +11,12 @@ from fastapi import (
 from services.analyzer import analyze
 from services.history_manager import save_scan
 
+try:
+    from services.report_generator import generate_report
+except ImportError:
+    def generate_report(*args, **kwargs):
+        return None
+
 
 router = APIRouter(
     prefix="/api",
@@ -195,7 +201,7 @@ async def scan(
         raise HTTPException(
             status_code=500,
             detail=f"File upload failed: {str(exc)}"
-        )
+        ) from exc
 
     finally:
 
@@ -357,17 +363,44 @@ async def scan(
 
     result["media_type"] = media_type
 
+    # ==========================================================
+    # GENERATE PDF REPORT
+    # ==========================================================
+
+    report_path = None
+
+    try:
+
+        report_path = generate_report(
+            scan_id=scan_id,
+            original_name=file.filename,
+            media_type=media_type,
+            result=result
+        )
+
+        result["report"] = report_path
+
+    except Exception as exc:
+
+        print(
+            f"PDF generation failed: {exc}"
+        )
+
+        result["report"] = None
+
 
     # ======================================================
     # SAVE HISTORY
     # ======================================================
 
     try:
-
         save_scan(
-            result
+            filename=filename,
+            original_name=file.filename,
+            media_type=media_type,
+            filepath=filepath,
+            result=result
         )
-
     except Exception as exc:
 
         # History failure should not destroy

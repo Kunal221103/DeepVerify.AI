@@ -129,6 +129,13 @@ def _analyze_frame(frame_path):
     model1_fake = _extract_fake_probability(
         model1
     )
+    
+    print(
+        f"[MODEL 1] {os.path.basename(frame_path)} "
+        f"-> fake={model1_fake:.4f}% "
+        f"real={model1.get('real_probability', 0):.4f}% "
+        f"label={model1.get('predicted_label', 'UNKNOWN')}"
+    ) 
 
     # ==========================================================
     # MODEL 2
@@ -138,6 +145,13 @@ def _analyze_frame(frame_path):
 
     model2_fake = _extract_fake_probability(
         model2
+    )
+
+    print(
+        f"[MODEL 2] {os.path.basename(frame_path)} "
+        f"-> fake={model2_fake:.4f}% "
+        f"real={model2.get('real_probability', 0):.4f}% "
+        f"label={model2.get('predicted_label', 'UNKNOWN')}"
     )
 
     # ==========================================================
@@ -278,8 +292,28 @@ def detect_video(frame_folder):
 
         try:
 
-            result = _analyze_frame(
-                frame
+            result = _analyze_frame(frame)
+            print(
+                f"\nFRAME RESULT: {os.path.basename(frame)}"
+            )
+            print(
+                f"Model 1 : {result['model_1_fake']:.2f}%"
+            )
+            print(
+                f"Model 2 : {result['model_2_fake']:.2f}%"
+            )
+            print(
+                f"Model 3 : {result['model_3_fake']:.2f}%"
+            )
+            print(
+                f"Model 4 : {result['model_4_fake']:.2f}%"
+                f"{result['model_4_fake']:.2f}%"
+                if result["model_4_fake"] is not None
+                else "Model 4: N/A"
+            )
+            print(
+                f"Ensemble: "
+                f"{result['frame_fake_probability']:.2f}%"
             )
 
             frame_results.append(

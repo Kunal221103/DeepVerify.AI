@@ -10,41 +10,61 @@ router = APIRouter(
 )
 
 
-REPORT_DIR = os.path.abspath("reports")
+REPORT_DIR = "reports"
+
+os.makedirs(
+    REPORT_DIR,
+    exist_ok=True
+)
 
 
 @router.get("/report/{scan_id}")
-def download_report(scan_id: str):
+async def download_report(scan_id: str):
 
-    if not scan_id:
+    # ==========================================================
+    # VALIDATE SCAN ID
+    # ==========================================================
+
+    if not scan_id or not scan_id.strip():
+
         raise HTTPException(
             status_code=400,
             detail="Missing scan ID."
         )
 
-    filename = f"{scan_id}.pdf"
 
-    filepath = os.path.join(
+    # ==========================================================
+    # LOCATE EXISTING PDF
+    # ==========================================================
+
+    pdf_path = os.path.join(
         REPORT_DIR,
-        filename
+        f"{scan_id}.pdf"
     )
 
-    print("\n========== REPORT REQUEST ==========")
-    print("Scan ID:", scan_id)
-    print("Report:", filepath)
-    print("Exists:", os.path.isfile(filepath))
-    print("====================================\n")
 
-    if not os.path.isfile(filepath):
+    # ==========================================================
+    # CHECK FILE
+    # ==========================================================
+
+    if not os.path.isfile(pdf_path):
 
         raise HTTPException(
             status_code=404,
-            detail="Report not found."
+            detail="PDF report not found."
         )
 
+
+    # ==========================================================
+    # RETURN PDF
+    # ==========================================================
+
     return FileResponse(
-        path=filepath,
+        path=pdf_path,
         media_type="application/pdf",
-        filename=filename,
-        content_disposition_type="inline"
+        filename=f"DeepVerify_Report_{scan_id}.pdf",
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="DeepVerify_Report_{scan_id}.pdf"'
+        }
     )

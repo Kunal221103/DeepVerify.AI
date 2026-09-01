@@ -1,157 +1,400 @@
-import { useState } from "react";
+import {
+    CheckCircle2,
+    Database,
+    Info,
+    MonitorCog,
+    RefreshCw,
+    ShieldCheck,
+    SlidersHorizontal,
+} from "lucide-react";
 
 import Layout from "../components/Layout/Layout";
 
+
 export default function Settings() {
 
-    const [settings, setSettings] = useState({
-        autoScan: true,
-        saveHistory: true,
-        notifications: true,
-    });
+    const backendUrl =
+        import.meta.env.VITE_API_URL ||
+        "http://127.0.0.1:8000/api";
 
-    const toggleSetting = (key) => {
-
-        setSettings((previous) => ({
-            ...previous,
-            [key]: !previous[key],
-        }));
-
-    };
 
     return (
 
         <Layout>
 
-            <div className="mb-8">
+            <div className="mx-auto max-w-7xl">
 
-                <h1 className="text-4xl font-bold">
-                    Settings
-                </h1>
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
 
-                <p className="text-slate-400 mt-2">
-                    Manage your DeepVerify AI preferences.
-                </p>
+                <div className="mb-8">
 
-            </div>
+                    <div className="
+                        flex
+                        items-center
+                        gap-2
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-[0.2em]
+                        text-blue-400
+                    ">
 
-            <div className="max-w-3xl space-y-6">
-
-                {/* Detection */}
-
-                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-
-                    <h2 className="text-xl font-semibold">
-                        Detection
-                    </h2>
-
-                    <p className="text-sm text-slate-400 mt-1">
-                        Configure how media scans are handled.
-                    </p>
-
-                    <div className="mt-6">
-
-                        <SettingRow
-                            title="Automatic Analysis"
-                            description="Automatically start AI analysis after a file is uploaded."
-                            enabled={settings.autoScan}
-                            onToggle={() =>
-                                toggleSetting("autoScan")
-                            }
+                        <SlidersHorizontal
+                            size={16}
                         />
+
+                        Configuration
 
                     </div>
 
-                </section>
 
-                {/* Storage */}
+                    <h1 className="
+                        mt-2
+                        text-3xl
+                        font-bold
+                        tracking-tight
+                        sm:text-4xl
+                    ">
+                        Settings
+                    </h1>
 
-                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
 
-                    <h2 className="text-xl font-semibold">
-                        Storage
-                    </h2>
-
-                    <p className="text-sm text-slate-400 mt-1">
-                        Control how scan information is stored.
+                    <p className="
+                        mt-2
+                        max-w-2xl
+                        text-sm
+                        leading-6
+                        text-slate-500
+                    ">
+                        View DeepVerify system configuration and
+                        detection capabilities.
                     </p>
 
-                    <div className="mt-6">
+                </div>
+
+
+                {/* ==================================================
+                    SETTINGS GRID
+                ================================================== */}
+
+                <div className="
+                    grid
+                    gap-6
+                    xl:grid-cols-2
+                ">
+
+
+                    {/* ==================================================
+                        DETECTION ENGINE
+                    ================================================== */}
+
+                    <SettingsCard
+                        icon={
+                            <ShieldCheck
+                                size={21}
+                            />
+                        }
+                        iconColor="text-blue-400"
+                        iconBg="bg-blue-500/10"
+                        title="Detection Engine"
+                        description="DeepVerify analysis capabilities."
+                    >
 
                         <SettingRow
-                            title="Save Scan History"
-                            description="Keep completed scans available in the History section."
-                            enabled={settings.saveHistory}
-                            onToggle={() =>
-                                toggleSetting("saveHistory")
-                            }
+                            label="Image Detection"
+                            value="Enabled"
+                            active
                         />
-
-                    </div>
-
-                </section>
-
-                {/* Notifications */}
-
-                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-
-                    <h2 className="text-xl font-semibold">
-                        Notifications
-                    </h2>
-
-                    <p className="text-sm text-slate-400 mt-1">
-                        Configure application notifications.
-                    </p>
-
-                    <div className="mt-6">
 
                         <SettingRow
-                            title="Scan Notifications"
-                            description="Show notifications when a scan finishes."
-                            enabled={settings.notifications}
-                            onToggle={() =>
-                                toggleSetting("notifications")
-                            }
+                            label="Video Detection"
+                            value="Enabled"
+                            active
                         />
 
-                    </div>
+                        <SettingRow
+                            label="Audio Detection"
+                            value="Enabled"
+                            active
+                        />
 
-                </section>
+                        <SettingRow
+                            label="Lip-Sync Analysis"
+                            value="Enabled"
+                            active
+                        />
 
-                {/* System */}
+                        <SettingRow
+                            label="Metadata Analysis"
+                            value="Enabled"
+                            active
+                        />
 
-                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    </SettingsCard>
 
-                    <h2 className="text-xl font-semibold">
-                        System Information
-                    </h2>
 
-                    <div className="mt-5 space-y-3 text-sm">
+                    {/* ==================================================
+                        SYSTEM
+                    ================================================== */}
 
-                        <InfoRow
+                    <SettingsCard
+                        icon={
+                            <MonitorCog
+                                size={21}
+                            />
+                        }
+                        iconColor="text-violet-400"
+                        iconBg="bg-violet-500/10"
+                        title="System"
+                        description="Application and backend services."
+                    >
+
+                        <SettingRow
+                            label="Frontend"
+                            value="Operational"
+                            active
+                        />
+
+                        <SettingRow
+                            label="Backend API"
+                            value="Connected"
+                            active
+                        />
+
+                        <SettingRow
+                            label="Report Engine"
+                            value="Available"
+                            active
+                        />
+
+                        <SettingRow
+                            label="History Service"
+                            value="Available"
+                            active
+                        />
+
+                    </SettingsCard>
+
+
+                    {/* ==================================================
+                        API CONFIGURATION
+                    ================================================== */}
+
+                    <SettingsCard
+                        icon={
+                            <Database
+                                size={21}
+                            />
+                        }
+                        iconColor="text-emerald-400"
+                        iconBg="bg-emerald-500/10"
+                        title="API Configuration"
+                        description="Current application API endpoint."
+                    >
+
+                        <div className="
+                            rounded-2xl
+                            border
+                            border-slate-800
+                            bg-slate-950
+                            p-4
+                        ">
+
+                            <p className="
+                                text-[10px]
+                                font-semibold
+                                uppercase
+                                tracking-[0.16em]
+                                text-slate-600
+                            ">
+                                API Base URL
+                            </p>
+
+
+                            <p className="
+                                mt-2
+                                break-all
+                                font-mono
+                                text-sm
+                                text-slate-300
+                            ">
+                                {backendUrl}
+                            </p>
+
+                        </div>
+
+
+                        <div className="
+                            mt-4
+                            flex
+                            items-start
+                            gap-3
+                            rounded-2xl
+                            border
+                            border-blue-500/10
+                            bg-blue-500/5
+                            p-4
+                        ">
+
+                            <Info
+                                size={17}
+                                className="
+                                    mt-0.5
+                                    shrink-0
+                                    text-blue-400
+                                "
+                            />
+
+
+                            <p className="
+                                text-xs
+                                leading-5
+                                text-slate-500
+                            ">
+                                The API endpoint is controlled through
+                                the VITE_API_URL environment variable.
+                            </p>
+
+                        </div>
+
+                    </SettingsCard>
+
+
+                    {/* ==================================================
+                        APPLICATION
+                    ================================================== */}
+
+                    <SettingsCard
+                        icon={
+                            <RefreshCw
+                                size={21}
+                            />
+                        }
+                        iconColor="text-amber-400"
+                        iconBg="bg-amber-500/10"
+                        title="Application"
+                        description="DeepVerify application information."
+                    >
+
+                        <SettingRow
                             label="Application"
                             value="DeepVerify AI"
                         />
 
-                        <InfoRow
-                            label="Version"
-                            value="1.0.0"
+                        <SettingRow
+                            label="Detection Platform"
+                            value="DeepVerify Engine"
                         />
 
-                        <InfoRow
-                            label="AI Engine"
-                            value="Vision Transformer"
+                        <SettingRow
+                            label="Interface"
+                            value="Web Application"
                         />
 
-                        <InfoRow
-                            label="Backend"
-                            value="FastAPI"
+                        <SettingRow
+                            label="Environment"
+                            value="Local"
                         />
 
-                        <InfoRow
-                            label="Database"
-                            value="MongoDB"
-                        />
+                    </SettingsCard>
+
+                </div>
+
+
+                {/* ==================================================
+                    PRIVACY
+                ================================================== */}
+
+                <section className="
+                    mt-6
+                    rounded-3xl
+                    border
+                    border-slate-800
+                    bg-slate-900
+                    p-6
+                    shadow-lg
+                ">
+
+                    <div className="
+                        flex
+                        flex-col
+                        gap-4
+                        md:flex-row
+                        md:items-center
+                    ">
+
+                        <div className="
+                            flex
+                            h-12
+                            w-12
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            bg-blue-500/10
+                        ">
+
+                            <ShieldCheck
+                                size={23}
+                                className="text-blue-400"
+                            />
+
+                        </div>
+
+
+                        <div className="flex-1">
+
+                            <h2 className="
+                                font-semibold
+                                text-slate-200
+                            ">
+                                Media Privacy
+                            </h2>
+
+
+                            <p className="
+                                mt-1
+                                text-sm
+                                leading-6
+                                text-slate-500
+                            ">
+                                Uploaded media is processed by the
+                                DeepVerify analysis pipeline. Avoid
+                                uploading sensitive material unless
+                                you are authorized to process it.
+                            </p>
+
+                        </div>
+
+
+                        <div className="
+                            flex
+                            items-center
+                            gap-2
+                            rounded-xl
+                            border
+                            border-emerald-500/10
+                            bg-emerald-500/5
+                            px-3
+                            py-2
+                        ">
+
+                            <CheckCircle2
+                                size={15}
+                                className="text-emerald-400"
+                            />
+
+                            <span className="
+                                text-xs
+                                font-medium
+                                text-emerald-400
+                            ">
+                                Protected
+                            </span>
+
+                        </div>
 
                     </div>
 
@@ -160,74 +403,153 @@ export default function Settings() {
             </div>
 
         </Layout>
-
     );
 }
 
 
-function SettingRow({
+// ============================================================
+// SETTINGS CARD
+// ============================================================
+
+function SettingsCard({
+    icon,
+    iconColor,
+    iconBg,
     title,
     description,
-    enabled,
-    onToggle
+    children
 }) {
 
     return (
 
-        <div className="flex items-center justify-between gap-6">
+        <section className="
+            rounded-3xl
+            border
+            border-slate-800
+            bg-slate-900
+            p-6
+            shadow-lg
+            transition-all
+            duration-300
+            hover:border-slate-700
+        ">
 
-            <div>
+            <div className="
+                flex
+                items-start
+                gap-4
+            ">
 
-                <h3 className="font-medium">
-                    {title}
-                </h3>
+                <div className={`
+                    rounded-xl
+                    p-3
+                    ${iconBg}
+                    ${iconColor}
+                `}>
+                    {icon}
+                </div>
 
-                <p className="text-sm text-slate-400 mt-1">
-                    {description}
-                </p>
+
+                <div>
+
+                    <h2 className="
+                        text-xl
+                        font-semibold
+                        text-slate-100
+                    ">
+                        {title}
+                    </h2>
+
+
+                    <p className="
+                        mt-1
+                        text-sm
+                        text-slate-500
+                    ">
+                        {description}
+                    </p>
+
+                </div>
 
             </div>
 
-            <button
-                type="button"
-                onClick={onToggle}
-                className={`relative w-12 h-6 rounded-full transition ${
-                    enabled
-                        ? "bg-blue-600"
-                        : "bg-slate-700"
-                }`}
-                aria-label={`Toggle ${title}`}
-            >
 
-                <span
-                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${
-                        enabled
-                            ? "left-7"
-                            : "left-1"
-                    }`}
-                />
+            <div className="
+                mt-6
+                space-y-3
+            ">
+                {children}
+            </div>
 
-            </button>
-
-        </div>
-
+        </section>
     );
 }
 
 
-function InfoRow({ label, value }) {
+// ============================================================
+// SETTING ROW
+// ============================================================
+
+function SettingRow({
+    label,
+    value,
+    active = false
+}) {
 
     return (
 
-        <div className="flex justify-between border-b border-slate-800 pb-3">
+        <div className="
+            flex
+            items-center
+            justify-between
+            gap-4
+            rounded-xl
+            border
+            border-transparent
+            bg-slate-950/70
+            px-4
+            py-3
+            transition
+            hover:border-slate-800
+        ">
 
-            <span className="text-slate-400">
+            <span className="
+                text-sm
+                text-slate-400
+            ">
                 {label}
             </span>
 
-            <span>
-                {value}
-            </span>
+
+            <div className="
+                flex
+                items-center
+                gap-2
+            ">
+
+                {active && (
+
+                    <span className="
+                        h-1.5
+                        w-1.5
+                        rounded-full
+                        bg-emerald-400
+                    " />
+
+                )}
+
+
+                <span
+                    className={
+                        active
+                            ? "text-xs font-medium text-emerald-400"
+                            : "text-xs text-slate-400"
+                    }
+                >
+                    {value}
+                </span>
+
+            </div>
 
         </div>
 

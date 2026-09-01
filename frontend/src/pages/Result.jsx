@@ -1,37 +1,44 @@
-import {
-    useLocation,
-    useNavigate,
-    useParams
-} from "react-router-dom";
-
-import {
-    useEffect,
-    useState
-} from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
     AlertTriangle,
-    ArrowLeft,
+    AudioLines,
     CheckCircle2,
+    ChevronDown,
     CircleHelp,
-    FileDown,
+    Download,
+    FileAudio,
+    FileImage,
     FileSearch,
-    Plus,
+    FileText,
+    FileVideo,
+    Fingerprint,
+    History as HistoryIcon,
+    Info,
+    Layers3,
+    ScanLine,
     ShieldAlert,
-    Sparkles
+    ShieldCheck,
+    Upload,
+    Video,
+    Volume2,
+    Waves,
 } from "lucide-react";
 
 import Layout from "../components/Layout/Layout";
 import { getHistory } from "../services/historyService";
 
 
+// ============================================================
+// RESULT PAGE
+// ============================================================
+
 export default function Result() {
 
     const location = useLocation();
     const navigate = useNavigate();
-
     const { scanId } = useParams();
-
 
     const [scan, setScan] = useState(
         location.state || null
@@ -50,10 +57,7 @@ export default function Result() {
 
         if (location.state) {
 
-            setScan(
-                location.state
-            );
-
+            setScan(location.state);
             setLoading(false);
 
             return;
@@ -72,20 +76,16 @@ export default function Result() {
 
             try {
 
-                const history =
-                    await getHistory();
+                const history = await getHistory();
 
-
-                const foundScan =
-                    history.find(
-                        (item) =>
-                            item.scan_id === scanId ||
-                            item._id === scanId
-                    );
-
+                const found = history.find(
+                    (item) =>
+                        item.scan_id === scanId ||
+                        item._id === scanId
+                );
 
                 setScan(
-                    foundScan || null
+                    found || null
                 );
 
             } catch (error) {
@@ -100,16 +100,14 @@ export default function Result() {
             } finally {
 
                 setLoading(false);
+
             }
         }
 
 
         loadScan();
 
-    }, [
-        location.state,
-        scanId
-    ]);
+    }, [location.state, scanId]);
 
 
     // ==========================================================
@@ -122,16 +120,27 @@ export default function Result() {
 
             <Layout>
 
-                <div className="flex items-center justify-center py-20">
+                <div className="flex min-h-[70vh] items-center justify-center">
 
                     <div className="text-center">
 
-                        <div className="text-2xl font-semibold">
-                            Loading scan...
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
+
+                            <ScanLine
+                                size={28}
+                                className="animate-pulse text-blue-400"
+                            />
+
                         </div>
 
-                        <p className="text-slate-400 mt-2">
-                            Retrieving analysis results.
+
+                        <h2 className="mt-6 text-2xl font-bold">
+                            Loading analysis
+                        </h2>
+
+
+                        <p className="mt-2 text-sm text-slate-500">
+                            Retrieving forensic results...
                         </p>
 
                     </div>
@@ -144,7 +153,7 @@ export default function Result() {
 
 
     // ==========================================================
-    // NO RESULT
+    // NOT FOUND
     // ==========================================================
 
     if (!scan) {
@@ -153,35 +162,52 @@ export default function Result() {
 
             <Layout>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center">
 
-                    <h1 className="text-3xl font-bold">
-                        Scan Not Found
-                    </h1>
+                    <div className="w-full rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center sm:p-10">
 
-                    <p className="text-slate-400 mt-2">
-                        The requested scan could not be found.
-                    </p>
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950">
 
-                    <div className="flex gap-3 mt-6">
+                            <CircleHelp
+                                size={32}
+                                className="text-slate-500"
+                            />
 
-                        <button
-                            onClick={() =>
-                                navigate("/history")
-                            }
-                            className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg"
-                        >
-                            Back to History
-                        </button>
+                        </div>
 
-                        <button
-                            onClick={() =>
-                                navigate("/upload")
-                            }
-                            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
-                        >
-                            New Scan
-                        </button>
+
+                        <h1 className="mt-6 text-3xl font-bold">
+                            Scan Not Found
+                        </h1>
+
+
+                        <p className="mt-3 text-sm leading-6 text-slate-500">
+                            The requested analysis could not be retrieved.
+                        </p>
+
+
+                        <div className="mt-7 flex flex-wrap justify-center gap-3">
+
+                            <button
+                                onClick={() =>
+                                    navigate("/history")
+                                }
+                                className="rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-semibold transition hover:bg-slate-700"
+                            >
+                                History
+                            </button>
+
+
+                            <button
+                                onClick={() =>
+                                    navigate("/upload")
+                                }
+                                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold transition hover:bg-blue-700"
+                            >
+                                New Scan
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -199,7 +225,9 @@ export default function Result() {
     const result =
         scan.result &&
         typeof scan.result === "object"
+
             ? {
+
                 ...scan.result,
 
                 scan_id:
@@ -219,7 +247,8 @@ export default function Result() {
                 confidence:
                     scan.confidence ??
                     scan.result.confidence ??
-                    scan.result.score,
+                    scan.result.score ??
+                    scan.score,
 
                 verdict:
                     scan.verdict ||
@@ -238,8 +267,10 @@ export default function Result() {
                     scan.original_name ||
                     scan.result.original_name ||
                     scan.filename ||
-                    scan.result.filename
+                    scan.result.filename,
+
             }
+
             : scan;
 
 
@@ -248,34 +279,53 @@ export default function Result() {
     // ==========================================================
 
     const verdict =
-        result.verdict ||
-        "UNKNOWN";
+        normalizeVerdict(
+            result.verdict
+        );
+
+
+    const media =
+        String(
+            result.media ||
+            result.media_type ||
+            "unknown"
+        ).toLowerCase();
+
+
+    const confidenceNumber =
+        Number(
+            result.confidence ??
+            result.score
+        );
 
 
     const confidence =
-        result.confidence !== undefined &&
-        result.confidence !== null
-            ? Number(
-                result.confidence
-            ).toFixed(2)
+        Number.isFinite(confidenceNumber)
+            ? confidenceNumber.toFixed(2)
             : "--";
 
 
+    const realNumber =
+        Number(
+            result.real_probability
+        );
+
+
+    const fakeNumber =
+        Number(
+            result.fake_probability
+        );
+
+
     const realProbability =
-        result.real_probability !== undefined &&
-        result.real_probability !== null
-            ? Number(
-                result.real_probability
-            ).toFixed(2)
+        Number.isFinite(realNumber)
+            ? realNumber.toFixed(2)
             : "--";
 
 
     const fakeProbability =
-        result.fake_probability !== undefined &&
-        result.fake_probability !== null
-            ? Number(
-                result.fake_probability
-            ).toFixed(2)
+        Number.isFinite(fakeNumber)
+            ? fakeNumber.toFixed(2)
             : "--";
 
 
@@ -284,101 +334,152 @@ export default function Result() {
         scan.scan_id ||
         scan._id;
 
-    const fakeScore = Number(result.fake_probability);
 
-    const realScore = Number(result.real_probability);
+    const filename =
+        result.original_name ||
+        result.filename ||
+        "Submitted media";
 
-    const scoreAvailable = Number.isFinite(fakeScore);
 
-    const verdictMeta = {
+    // ==========================================================
+    // VERDICT
+    // ==========================================================
+
+    const verdictConfig = {
+
         AUTHENTIC: {
-            label: "No strong synthetic evidence detected",
+
             icon: CheckCircle2,
-            accent: "emerald",
-            note: "The available evidence is more consistent with authentic media. This is not proof of origin."
+
+            title: "AUTHENTIC",
+
+            description:
+                "No strong synthetic evidence was detected.",
+
+            color:
+                "text-emerald-400",
+
+            border:
+                "border-emerald-500/25",
+
+            background:
+                "bg-emerald-500/5",
+
+            glow:
+                "bg-emerald-500/10",
+
         },
+
+
         DEEPFAKE: {
-            label: "Strong synthetic or manipulated evidence detected",
+
             icon: ShieldAlert,
-            accent: "rose",
-            note: "Review the modality evidence and source media before making a decision."
+
+            title: "DEEPFAKE",
+
+            description:
+                "Strong synthetic or manipulated evidence was detected.",
+
+            color:
+                "text-rose-400",
+
+            border:
+                "border-rose-500/25",
+
+            background:
+                "bg-rose-500/5",
+
+            glow:
+                "bg-rose-500/10",
+
         },
+
+
         SUSPICIOUS: {
-            label: "Evidence is mixed or needs review",
+
             icon: AlertTriangle,
-            accent: "amber",
-            note: "A human reviewer should inspect the source file and supporting evidence."
+
+            title: "SUSPICIOUS",
+
+            description:
+                "The available evidence is mixed and requires further review.",
+
+            color:
+                "text-amber-400",
+
+            border:
+                "border-amber-500/25",
+
+            background:
+                "bg-amber-500/5",
+
+            glow:
+                "bg-amber-500/10",
+
         },
+
+
         UNKNOWN: {
-            label: "Analysis verdict unavailable",
+
             icon: CircleHelp,
-            accent: "slate",
-            note: "The scan did not return enough evidence for a final classification."
-        }
-    }[verdict] || {
-        label: "Analysis verdict unavailable",
-        icon: CircleHelp,
-        accent: "slate",
-        note: "The scan did not return enough evidence for a final classification."
-    };
 
-    const VerdictIcon = verdictMeta.icon;
+            title: "UNKNOWN",
 
-    const audioReliability = Number(result.audio?.audio_reliability);
+            description:
+                "Insufficient evidence was returned for classification.",
 
-    const modelAgreement = Number(result.audio?.model_agreement);
+            color:
+                "text-slate-400",
 
+            border:
+                "border-slate-700",
 
-    // ==========================================================
-    // VERDICT STYLE
-    // ==========================================================
+            background:
+                "bg-slate-800/30",
 
-    const getVerdictStyle = () => {
+            glow:
+                "bg-slate-500/10",
 
-        if (verdict === "AUTHENTIC") {
+        },
 
-            return "text-green-400";
-        }
-
-        if (verdict === "DEEPFAKE") {
-
-            return "text-red-400";
-        }
-
-        if (verdict === "SUSPICIOUS") {
-
-            return "text-yellow-400";
-        }
-
-        return "text-slate-400";
     };
 
 
-    // ==========================================================
-    // MODEL EVIDENCE
-    // ==========================================================
-
-    const modelEvidence =
-        result.image?.model_evidence ||
-        {};
+    const config =
+        verdictConfig[verdict] ||
+        verdictConfig.UNKNOWN;
 
 
-    const models =
-        result.models ||
-        {};
+    const VerdictIcon =
+        config.icon;
 
 
     // ==========================================================
-    // ENSEMBLE
+    // DOWNLOAD PDF
     // ==========================================================
 
-    const ensemble =
-        result.ensemble ||
-        {};
+    const downloadReport = () => {
+
+        if (!reportId) {
+
+            alert(
+                "Report ID is not available."
+            );
+
+            return;
+        }
+
+
+        window.open(
+            `http://127.0.0.1:8000/api/report/${reportId}`,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    };
 
 
     // ==========================================================
-    // PAGE
+    // RETURN
     // ==========================================================
 
     return (
@@ -389,412 +490,434 @@ export default function Result() {
                 HEADER
             ================================================== */}
 
-            <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-7">
 
-                <div>
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
 
-                    <div className="flex items-center gap-2 text-sm font-medium text-blue-300">
-                        <FileSearch size={17} />
-                        FORENSIC ANALYSIS REPORT
+                    <div className="min-w-0">
+
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
+
+                            <FileSearch
+                                size={16}
+                            />
+
+                            Forensic Analysis
+
+                        </div>
+
+
+                        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                            Scan Result
+                        </h1>
+
+
+                        <div className="mt-3 flex max-w-3xl items-center gap-3">
+
+                            <MediaIcon
+                                media={media}
+                            />
+
+                            <p className="truncate text-sm text-slate-400">
+
+                                Analysis for{" "}
+
+                                <span className="font-medium text-slate-200">
+                                    {filename}
+                                </span>
+
+                            </p>
+
+                        </div>
+
                     </div>
 
-                    <h1 className="mt-2 text-4xl font-bold tracking-tight">
-                        Scan result
-                    </h1>
 
-                    <p className="mt-2 max-w-2xl text-slate-400">
-                        Evidence-led assessment for {result.original_name || result.filename || "the submitted media file"}.
-                    </p>
+                    <div className="flex flex-wrap gap-2">
 
-                </div>
+                        <button
+                            onClick={() =>
+                                navigate("/history")
+                            }
+                            className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-700 hover:bg-slate-800"
+                        >
 
-                <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-400">
-                    <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Scan identifier</p>
-                    <p className="mt-1 font-mono text-slate-200">{reportId || "Not available"}</p>
+                            <HistoryIcon
+                                size={17}
+                            />
+
+                            History
+
+                        </button>
+
+
+                        <button
+                            onClick={downloadReport}
+                            disabled={!reportId}
+                            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+
+                            <Download
+                                size={17}
+                            />
+
+                            Download PDF
+
+                        </button>
+
+                    </div>
+
                 </div>
 
             </div>
 
 
             {/* ==================================================
-                FINAL RESULT
+                HERO VERDICT
             ================================================== */}
 
-            <section className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/30">
+            <section
+                className={`
+                    relative overflow-hidden rounded-3xl border
+                    ${config.border}
+                    ${config.background}
+                `}
+            >
 
-                <div className="grid lg:grid-cols-[1.2fr_0.8fr]">
+                <div
+                    className={`
+                        pointer-events-none absolute -right-24 -top-24
+                        h-64 w-64 rounded-full blur-3xl
+                        ${config.glow}
+                    `}
+                />
 
-                    <div className="p-6 sm:p-8">
 
-                        <div className="flex items-start gap-4">
+                <div className="relative grid lg:grid-cols-[1fr_360px]">
 
-                            <div className={`rounded-xl p-3 ${
-                                verdictMeta.accent === "emerald" ? "bg-emerald-500/15 text-emerald-300" :
-                                verdictMeta.accent === "rose" ? "bg-rose-500/15 text-rose-300" :
-                                verdictMeta.accent === "amber" ? "bg-amber-500/15 text-amber-300" :
-                                "bg-slate-700 text-slate-300"
-                            }`}>
-                                <VerdictIcon size={28} />
+
+                    {/* VERDICT */}
+
+                    <div className="p-7 sm:p-9 lg:p-10">
+
+                        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+
+                            <div
+                                className={`
+                                    flex h-16 w-16 shrink-0 items-center
+                                    justify-center rounded-2xl border
+                                    border-white/5 bg-slate-950/60
+                                    ${config.color}
+                                `}
+                            >
+
+                                <VerdictIcon
+                                    size={34}
+                                />
+
                             </div>
 
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Final assessment</p>
-                                <h2 className={`mt-2 text-3xl font-bold ${getVerdictStyle()}`}>{verdict}</h2>
-                                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">{verdictMeta.label}</p>
+
+                            <div className="min-w-0">
+
+                                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                                    Final Verdict
+                                </p>
+
+
+                                <h2
+                                    className={`
+                                        mt-2 text-4xl font-black tracking-tight
+                                        sm:text-5xl
+                                        ${config.color}
+                                    `}
+                                >
+                                    {config.title}
+                                </h2>
+
+
+                                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                                    {config.description}
+                                </p>
+
                             </div>
 
                         </div>
 
-                        <div className="mt-6 border-t border-slate-800 pt-5 text-sm text-slate-400">
-                            <span className="font-medium text-slate-300">Reviewer note:</span> {verdictMeta.note}
+
+                        <div className="mt-8 flex flex-wrap gap-2">
+
+                            <StatusPill
+                                label="Media"
+                                value={media}
+                            />
+
+                            <StatusPill
+                                label="Analysis"
+                                value="Complete"
+                            />
+
+                            {reportId && (
+
+                                <StatusPill
+                                    label="Report"
+                                    value="Available"
+                                />
+
+                            )}
+
+                        </div>
+
+
+                        <div className="mt-8 flex items-start gap-3 border-t border-white/10 pt-5">
+
+                            <Info
+                                size={17}
+                                className="mt-0.5 shrink-0 text-slate-500"
+                            />
+
+                            <p className="text-xs leading-5 text-slate-500">
+
+                                AI detection is probabilistic. Interpret the
+                                final verdict together with the individual
+                                evidence signals below.
+
+                            </p>
+
                         </div>
 
                     </div>
 
-                    <div className="border-t border-slate-800 bg-slate-950/50 p-6 sm:p-8 lg:border-l lg:border-t-0">
 
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Confidence</p>
-                        <p className="mt-3 text-5xl font-bold tabular-nums text-white">{confidence}<span className="text-2xl text-slate-500">%</span></p>
-                        <p className="mt-3 text-sm leading-6 text-slate-400">Confidence reflects the strength of the combined model evidence, not certainty about the media's origin.</p>
+                    {/* CONFIDENCE */}
+
+                    <div className="border-t border-white/10 bg-slate-950/30 p-7 sm:p-9 lg:border-l lg:border-t-0">
+
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                            Overall Confidence
+                        </p>
+
+
+                        <div className="mt-4 flex items-end gap-1">
+
+                            <span className="text-6xl font-black tabular-nums tracking-tight">
+                                {confidence}
+                            </span>
+
+                            <span className="mb-2 text-2xl text-slate-600">
+                                %
+                            </span>
+
+                        </div>
+
+
+                        <div className="mt-6">
+
+                            <div className="flex items-center justify-between text-[11px] text-slate-600">
+
+                                <span>
+                                    0
+                                </span>
+
+                                <span>
+                                    100
+                                </span>
+
+                            </div>
+
+
+                            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-800">
+
+                                <div
+                                    className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                                    style={{
+                                        width: `${clamp(
+                                            confidenceNumber
+                                        )}%`
+                                    }}
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        <p className="mt-5 text-xs leading-5 text-slate-500">
+                            Confidence represents the strength of the available
+                            model evidence, not absolute certainty.
+                        </p>
 
                     </div>
 
                 </div>
-
-                {scoreAvailable && (
-                    <div className="border-t border-slate-800 bg-slate-950/30 px-6 py-5 sm:px-8">
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                            <p className="font-medium text-slate-200">Evidence balance</p>
-                            <p className="tabular-nums text-slate-400">Authentic {Number.isFinite(realScore) ? realScore.toFixed(2) : "--"}% · Synthetic {fakeScore.toFixed(2)}%</p>
-                        </div>
-                        <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-800" aria-label={`Evidence balance: authentic ${realScore} percent, synthetic ${fakeScore} percent`}>
-                            <div className="bg-emerald-400" style={{ width: `${Math.max(0, Math.min(100, realScore))}%` }} />
-                            <div className="bg-rose-400" style={{ width: `${Math.max(0, Math.min(100, fakeScore))}%` }} />
-                        </div>
-                    </div>
-                )}
 
             </section>
 
 
             {/* ==================================================
-                PROBABILITIES
+                EVIDENCE OVERVIEW
             ================================================== */}
 
-            {(result.media === "image" ||
-                result.media === "video" ||
-                result.media === "audio") && (
+            <section className="mt-6 grid gap-5 lg:grid-cols-2">
 
-                <div className="grid gap-4 md:grid-cols-2 mt-6">
-                    <EvidenceMetric label="Authentic evidence" value={realProbability} tone="real" description="Evidence consistent with non-synthetic media" />
-                    <EvidenceMetric label="Synthetic evidence" value={fakeProbability} tone="fake" description="Evidence consistent with generated or manipulated media" />
-                </div>
-            )}
+                <EvidenceCard
+                    icon={
+                        <ShieldCheck
+                            size={20}
+                        />
+                    }
+                    title="Authentic Evidence"
+                    value={realProbability}
+                    description="Evidence consistent with authentic media."
+                    type="real"
+                />
+
+
+                <EvidenceCard
+                    icon={
+                        <ShieldAlert
+                            size={20}
+                        />
+                    }
+                    title="Synthetic Evidence"
+                    value={fakeProbability}
+                    description="Evidence consistent with generated or manipulated media."
+                    type="fake"
+                />
+
+            </section>
+
+
+            {/* ==================================================
+                QUICK SUMMARY
+            ================================================== */}
+
+            <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+                <QuickMetric
+                    icon={
+                        <FileText
+                            size={18}
+                        />
+                    }
+                    label="Media Type"
+                    value={capitalize(media)}
+                />
+
+
+                <QuickMetric
+                    icon={
+                        <Fingerprint
+                            size={18}
+                        />
+                    }
+                    label="Scan ID"
+                    value={
+                        reportId
+                            ? shortenId(reportId)
+                            : "--"
+                    }
+                />
+
+
+                <QuickMetric
+                    icon={
+                        <Layers3
+                            size={18}
+                        />
+                    }
+                    label="Evidence"
+                    value={
+                        countEvidence(
+                            result
+                        )
+                    }
+                />
+
+
+                <QuickMetric
+                    icon={
+                        <ShieldCheck
+                            size={18}
+                        />
+                    }
+                    label="Status"
+                    value="Analysis Complete"
+                />
+
+            </section>
 
 
             {/* ==================================================
                 SCAN INFORMATION
             ================================================== */}
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+            <Section
+                icon={
+                    <FileText
+                        size={18}
+                    />
+                }
+                title="Scan Information"
+                subtitle="Basic information associated with this analysis."
+            >
 
-                <h2 className="text-xl font-semibold mb-5">
-                    Scan Information
-                </h2>
+                <div className="grid gap-4 md:grid-cols-3">
 
-                <div className="grid md:grid-cols-2 gap-4">
-
-                    <Info
+                    <InfoCard
                         label="Media Type"
-                        value={
-                            result.media ||
-                            result.media_type ||
-                            "--"
-                        }
+                        value={capitalize(media)}
                     />
 
-
-                    <Info
+                    <InfoCard
                         label="File"
-                        value={
-                            result.original_name ||
-                            result.filename ||
-                            "--"
-                        }
+                        value={filename}
                     />
 
-
-                    <Info
+                    <InfoCard
                         label="Scan ID"
-                        value={
-                            reportId ||
-                            "--"
-                        }
+                        value={reportId || "--"}
                     />
 
                 </div>
 
-            </div>
+            </Section>
 
 
             {/* ==================================================
-                IMAGE MODEL EVIDENCE
-            ================================================== */}
-
-            {result.media === "image" && (
-
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
-
-                    <div className="mb-5">
-
-                        <h2 className="text-xl font-semibold">
-                            AI Model Evidence
-                        </h2>
-
-                        <p className="text-slate-400 text-sm mt-1">
-                            Results from three independent image detection models.
-                        </p>
-
-                    </div>
-
-
-                    <div className="grid md:grid-cols-3 gap-4">
-
-                        <ModelCard
-                            title="Model 1"
-                            subtitle="AI Image Detector"
-                            data={
-                                modelEvidence.model_1 ||
-                                models.model_1
-                            }
-                        />
-
-
-                        <ModelCard
-                            title="Model 2"
-                            subtitle="Steganography Detector"
-                            data={
-                                modelEvidence.model_2 ||
-                                models.model_2
-                            }
-                        />
-
-
-                        <ModelCard
-                            title="Model 3"
-                            subtitle="SDXL Detector"
-                            data={
-                                modelEvidence.model_3 ||
-                                models.model_3
-                            }
-                        />
-
-                    </div>
-
-                </div>
-            )}
-
-
-            {/* ==================================================
-                IMAGE ANALYSIS
-            ================================================== */}
-
-            {result.image && (
-
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
-
-                    <h2 className="text-xl font-semibold mb-5">
-                        Image Analysis
-                    </h2>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                        <Info
-                            label="Image Score"
-                            value={
-                                result.image.confidence ??
-                                result.score ??
-                                "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="Real Probability"
-                            value={
-                                result.image.real_probability !== undefined
-                                    ? `${result.image.real_probability}%`
-                                    : "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="Fake Probability"
-                            value={
-                                result.image.fake_probability !== undefined
-                                    ? `${result.image.fake_probability}%`
-                                    : "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="Prediction"
-                            value={
-                                result.image.prediction ||
-                                verdict
-                            }
-                        />
-
-                    </div>
-
-                </div>
-            )}
-
-
-            {/* ==================================================
-                FORENSIC ANALYSIS
-            ================================================== */}
-
-            {(result.ela ||
-                result.noise) && (
-
-                <div className="grid md:grid-cols-2 gap-6 mt-6">
-
-                    {result.ela && (
-
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-
-                            <h2 className="text-xl font-semibold">
-                                ELA Analysis
-                            </h2>
-
-                            <div className="mt-5">
-
-                                <Info
-                                    label="ELA Score"
-                                    value={
-                                        result.ela.ela_score ??
-                                        "--"
-                                    }
-                                />
-
-                            </div>
-
-                        </div>
-                    )}
-
-
-                    {result.noise && (
-
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-
-                            <h2 className="text-xl font-semibold">
-                                Noise Analysis
-                            </h2>
-
-                            <div className="mt-5 space-y-3">
-
-                                <Info
-                                    label="Noise Score"
-                                    value={
-                                        result.noise.noise_score ??
-                                        "--"
-                                    }
-                                />
-
-
-                                <Info
-                                    label="Noise Variance"
-                                    value={
-                                        result.noise.noise_variance ??
-                                        "--"
-                                    }
-                                />
-
-                            </div>
-
-                        </div>
-                    )}
-
-                </div>
-            )}
-
-
-            {/* ==================================================
-                METADATA
-            ================================================== */}
-
-            {result.metadata && (
-
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
-
-                    <h2 className="text-xl font-semibold mb-5">
-                        Metadata Analysis
-                    </h2>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-
-                        <Info
-                            label="Metadata Score"
-                            value={
-                                result.metadata.metadata_score ??
-                                "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="File Size"
-                            value={
-                                result.metadata.file_size !== undefined
-                                    ? `${result.metadata.file_size} bytes`
-                                    : "--"
-                            }
-                        />
-
-                    </div>
-
-                </div>
-            )}
-
-
-            {/* ==================================================
-                VIDEO ANALYSIS
+                VIDEO
             ================================================== */}
 
             {result.video && (
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+                <Section
+                    icon={
+                        <Video
+                            size={18}
+                        />
+                    }
+                    title="Video Analysis"
+                    subtitle="Visual evidence extracted from sampled video frames."
+                >
 
-                    <h2 className="text-xl font-semibold mb-5">
-                        Video Analysis
-                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                        <Info
-                            label="Authenticity Score"
-                            value={
-                                result.video.face_score !== undefined
-                                    ? `${result.video.face_score}%`
-                                    : "--"
-                            }
+                        <Metric
+                            label="Visual Authenticity"
+                            value={percent(
+                                result.video.face_score
+                            )}
                         />
 
-
-                        <Info
+                        <Metric
                             label="Fake Probability"
-                            value={
-                                result.video.fake_probability !== undefined
-                                    ? `${result.video.fake_probability}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.video.fake_probability
+                            )}
+                            danger
                         />
 
-
-                        <Info
+                        <Metric
                             label="Frames Analyzed"
                             value={
                                 result.video.frames_analyzed ??
@@ -802,199 +925,152 @@ export default function Result() {
                             }
                         />
 
-
-                        <Info
+                        <Metric
                             label="Fake Frame Ratio"
-                            value={
-                                result.video.fake_frame_ratio !== undefined
-                                    ? `${result.video.fake_frame_ratio}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.video.fake_frame_ratio
+                            )}
+                            danger
                         />
 
                     </div>
+
 
                     {result.video.model_scores && (
-                        <div className="mt-6 border-t border-slate-800 pt-5">
-                            <p className="text-sm font-medium text-slate-200">Visual model evidence</p>
-                            <p className="mt-1 text-sm text-slate-400">Per-model synthetic-evidence scores across sampled frames.</p>
-                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                {Object.entries(result.video.model_scores).map(([name, value]) => (
-                                    <Info key={name} label={name.replaceAll("_", " ").replace("probability", "evidence")} value={value !== null && value !== undefined ? `${Number(value).toFixed(2)}%` : "Not available"} />
-                                ))}
+
+                        <div className="mt-7 border-t border-slate-800 pt-6">
+
+                            <div className="flex items-center gap-2">
+
+                                <ScanLine
+                                    size={17}
+                                    className="text-blue-400"
+                                />
+
+                                <h3 className="font-semibold">
+                                    Visual Model Evidence
+                                </h3>
+
                             </div>
+
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Average synthetic-evidence scores across sampled frames.
+                            </p>
+
+
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+
+                                {Object.entries(
+                                    result.video.model_scores
+                                ).map(
+                                    ([name, value]) => (
+
+                                        <Metric
+                                            key={name}
+                                            label={formatLabel(name)}
+                                            value={percent(value)}
+                                            danger
+                                        />
+
+                                    )
+                                )}
+
+                            </div>
+
                         </div>
+
                     )}
 
-                </div>
+                </Section>
+
             )}
 
 
             {/* ==================================================
-                MULTIMODAL VIDEO ANALYSIS
+                VIDEO AGGREGATION
             ================================================== */}
 
-            {result.media === "video" &&
-                result.ensemble && (
+            {result.video?.aggregation && (
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+                <Section
+                    icon={
+                        <Layers3
+                            size={18}
+                        />
+                    }
+                    title="Video Aggregation"
+                    subtitle="Temporal aggregation of frame-level evidence."
+                >
 
-                    <h2 className="text-xl font-semibold mb-2">
-                        Multimodal Analysis
-                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
 
-                    <p className="text-slate-400 text-sm mb-5">
-                        Final assessment combines visual and audio evidence.
-                    </p>
-
-
-                    <p className="mb-5 max-w-3xl text-sm leading-6 text-slate-400">
-                        Voice results are model evidence, not speaker identification. Background speech, music, compression, and edits can reduce reliability.
-                    </p>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                        <Info
-                            label="Visual Fake Evidence"
-                            value={
-                                ensemble.visual_fake_probability !== undefined
-                                    ? `${ensemble.visual_fake_probability}%`
-                                    : "--"
-                            }
+                        <Metric
+                            label="Mean Fake Probability"
+                            value={percent(
+                                result.video.aggregation
+                                    .mean_fake_probability
+                            )}
+                            danger
                         />
 
-
-                        <Info
-                            label="Audio Fake Evidence"
-                            value={
-                                ensemble.audio_fake_probability !== undefined
-                                    ? `${ensemble.audio_fake_probability}%`
-                                    : "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="Visual Weight"
-                            value={
-                                ensemble.visual_weight !== undefined
-                                    ? `${ensemble.visual_weight * 100}%`
-                                    : "--"
-                            }
-                        />
-
-
-                        <Info
-                            label="Audio Weight"
-                            value={
-                                ensemble.audio_weight !== undefined
-                                    ? `${ensemble.audio_weight * 100}%`
-                                    : "--"
-                            }
-                        />
-
-                        <Info
-                            label="Raw Fake Evidence"
-                            value={
-                                result.audio.raw_fake_probability !== undefined
-                                    ? `${result.audio.raw_fake_probability}%`
-                                    : "--"
-                            }
-                        />
-
-                        <Info
-                            label="Audio Reliability"
-                            value={
-                                Number.isFinite(audioReliability)
-                                    ? `${(audioReliability * 100).toFixed(1)}%`
-                                    : "Not available"
-                            }
-                        />
-
-                        <Info
-                            label="Model Agreement"
-                            value={
-                                Number.isFinite(modelAgreement)
-                                    ? `${(modelAgreement * 100).toFixed(1)}%`
-                                    : "Not available"
-                            }
+                        <Metric
+                            label="Median Fake Probability"
+                            value={percent(
+                                result.video.aggregation
+                                    .median_fake_probability
+                            )}
+                            danger
                         />
 
                     </div>
 
-                    {result.audio.segment_predictions?.length > 0 && (
-                        <details className="mt-6 rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-                            <summary className="cursor-pointer font-medium text-slate-200">Inspect segment-level audio evidence ({result.audio.segment_predictions.length} segments)</summary>
-                            <div className="mt-4 overflow-x-auto">
-                                <table className="min-w-full text-left text-sm">
-                                    <thead className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500">
-                                        <tr><th className="pb-3 pr-4">Segment</th><th className="pb-3 pr-4">Authentic</th><th className="pb-3 pr-4">Synthetic</th><th className="pb-3 pr-4">Signal reliability</th><th className="pb-3">Model agreement</th></tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800 text-slate-300">
-                                        {result.audio.segment_predictions.map((segment) => (
-                                            <tr key={segment.segment}>
-                                                <td className="py-3 pr-4">{segment.segment}</td>
-                                                <td className="py-3 pr-4 text-emerald-300">{segment.real_probability}%</td>
-                                                <td className="py-3 pr-4 text-rose-300">{segment.fake_probability}%</td>
-                                                <td className="py-3 pr-4">{segment.reliability !== undefined ? `${(Number(segment.reliability) * 100).toFixed(1)}%` : "--"}</td>
-                                                <td className="py-3">{segment.model_agreement !== undefined ? `${(Number(segment.model_agreement) * 100).toFixed(1)}%` : "--"}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </details>
-                    )}
+                </Section>
 
-                </div>
             )}
 
 
             {/* ==================================================
-                AUDIO ANALYSIS
+                AUDIO
             ================================================== */}
 
             {result.audio && (
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+                <Section
+                    icon={
+                        <AudioLines
+                            size={18}
+                        />
+                    }
+                    title="Audio Analysis"
+                    subtitle="Voice authenticity evidence extracted from the media."
+                >
 
-                    <h2 className="text-xl font-semibold mb-5">
-                        Audio Analysis
-                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                        <Info
+                        <Metric
                             label="Voice Score"
-                            value={
-                                result.audio.voice_score !== undefined
-                                    ? `${result.audio.voice_score}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.audio.voice_score
+                            )}
                         />
 
-
-                        <Info
+                        <Metric
                             label="Real Probability"
-                            value={
-                                result.audio.real_probability !== undefined
-                                    ? `${result.audio.real_probability}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.audio.real_probability
+                            )}
                         />
 
-
-                        <Info
+                        <Metric
                             label="Fake Probability"
-                            value={
-                                result.audio.fake_probability !== undefined
-                                    ? `${result.audio.fake_probability}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.audio.fake_probability
+                            )}
+                            danger
                         />
 
-
-                        <Info
+                        <Metric
                             label="Duration"
                             value={
                                 result.audio.duration !== undefined
@@ -1005,8 +1081,98 @@ export default function Result() {
 
                     </div>
 
-                </div>
+
+                    <AudioEvidenceBar
+                        real={
+                            result.audio.real_probability
+                        }
+                        fake={
+                            result.audio.fake_probability
+                        }
+                    />
+
+
+                    {result.audio.segment_predictions?.length > 0 && (
+
+                        <AudioSegments
+                            segments={
+                                result.audio.segment_predictions
+                            }
+                        />
+
+                    )}
+
+                </Section>
+
             )}
+
+
+            {/* ==================================================
+                MULTIMODAL
+            ================================================== */}
+
+            {result.media === "video" &&
+                result.ensemble && (
+
+                    <Section
+                        icon={
+                            <Waves
+                                size={18}
+                            />
+                        }
+                        title="Multimodal Analysis"
+                        subtitle="Combined visual and audio evidence."
+                    >
+
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+                            <Metric
+                                label="Visual Fake Evidence"
+                                value={percent(
+                                    result.ensemble
+                                        .visual_fake_probability
+                                )}
+                                danger
+                            />
+
+                            <Metric
+                                label="Audio Fake Evidence"
+                                value={percent(
+                                    result.ensemble
+                                        .audio_fake_probability
+                                )}
+                                danger
+                            />
+
+                            <Metric
+                                label="Visual Weight"
+                                value={
+                                    result.ensemble
+                                        .visual_weight !== undefined
+                                        ? `${Number(
+                                            result.ensemble.visual_weight
+                                        ) * 100}%`
+                                        : "--"
+                                }
+                            />
+
+                            <Metric
+                                label="Audio Weight"
+                                value={
+                                    result.ensemble
+                                        .audio_weight !== undefined
+                                        ? `${Number(
+                                            result.ensemble.audio_weight
+                                        ) * 100}%`
+                                        : "--"
+                                }
+                            />
+
+                        </div>
+
+                    </Section>
+
+                )}
 
 
             {/* ==================================================
@@ -1015,25 +1181,26 @@ export default function Result() {
 
             {result.lipsync && (
 
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+                <Section
+                    icon={
+                        <Volume2
+                            size={18}
+                        />
+                    }
+                    title="Lip-Sync Analysis"
+                    subtitle="Analysis of mouth movement consistency within the video."
+                >
 
-                    <h2 className="text-xl font-semibold">
-                        Lip-Sync Analysis
-                    </h2>
+                    <div className="grid gap-4 md:grid-cols-3">
 
-                    <div className="grid md:grid-cols-3 gap-4 mt-5">
-
-                        <Info
+                        <Metric
                             label="Lip-Sync Score"
-                            value={
-                                result.lipsync.lipsync_score !== undefined
-                                    ? `${result.lipsync.lipsync_score}%`
-                                    : "--"
-                            }
+                            value={percent(
+                                result.lipsync.lipsync_score
+                            )}
                         />
 
-
-                        <Info
+                        <Metric
                             label="Frames Analyzed"
                             value={
                                 result.lipsync.frames_analyzed ??
@@ -1041,8 +1208,7 @@ export default function Result() {
                             }
                         />
 
-
-                        <Info
+                        <Metric
                             label="Mouth Motion"
                             value={
                                 result.lipsync.mouth_motion ??
@@ -1052,48 +1218,202 @@ export default function Result() {
 
                     </div>
 
-                </div>
+
+                    {result.lipsync.details && (
+
+                        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+
+                            <Info
+                                size={17}
+                                className="mt-0.5 shrink-0 text-slate-600"
+                            />
+
+                            <p className="text-sm leading-6 text-slate-500">
+                                {result.lipsync.details}
+                            </p>
+
+                        </div>
+
+                    )}
+
+                </Section>
+
             )}
 
 
             {/* ==================================================
-                ACTIONS
+                METADATA
             ================================================== */}
 
-            <div className="flex flex-wrap gap-4 mt-8">
+            {result.metadata && (
 
-                <button
-                    onClick={() =>
-                        navigate("/upload")
+                <Section
+                    icon={
+                        <Fingerprint
+                            size={18}
+                        />
                     }
-                    className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
+                    title="Metadata Analysis"
+                    subtitle="File-level metadata and integrity information."
                 >
-                    New Scan
-                </button>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+
+                        <Metric
+                            label="Metadata Score"
+                            value={
+                                result.metadata.metadata_score ??
+                                "--"
+                            }
+                        />
+
+                        <Metric
+                            label="File Size"
+                            value={
+                                result.metadata.file_size !== undefined
+                                    ? formatBytes(
+                                        result.metadata.file_size
+                                    )
+                                    : "--"
+                            }
+                        />
+
+                        <InfoCard
+                            label="SHA-256"
+                            value={
+                                result.metadata.sha256 ||
+                                "--"
+                            }
+                        />
+
+                        <InfoCard
+                            label="EXIF"
+                            value={
+                                result.metadata.exif_present
+                                    ? `${result.metadata.exif_fields || 0} fields`
+                                    : "Not present"
+                            }
+                        />
+
+                    </div>
+
+                </Section>
+
+            )}
 
 
-                <button
-                    onClick={() =>
-                        navigate("/history")
-                    }
-                    className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg"
-                >
-                    Back to History
-                </button>
+            {/* ==================================================
+                IMAGE MODELS
+            ================================================== */}
 
+            {result.media === "image" &&
+                result.models && (
 
-                {reportId && (
-
-                    <a
-                        href={`http://127.0.0.1:8000/api/report/${reportId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg"
+                    <Section
+                        icon={
+                            <FileImage
+                                size={18}
+                            />
+                        }
+                        title="AI Model Evidence"
+                        subtitle="Results from the image detection models."
                     >
-                        Download PDF
-                    </a>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+
+                            {Object.entries(
+                                result.models
+                            ).map(
+                                ([name, data]) => (
+
+                                    <ModelCard
+                                        key={name}
+                                        title={formatLabel(name)}
+                                        data={data}
+                                    />
+
+                                )
+                            )}
+
+                        </div>
+
+                    </Section>
 
                 )}
+
+
+            {/* ==================================================
+                FINAL ACTIONS
+            ================================================== */}
+
+            <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                    <div>
+
+                        <h2 className="font-semibold">
+                            Analysis complete
+                        </h2>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                            Review the evidence or start another scan.
+                        </p>
+
+                    </div>
+
+
+                    <div className="flex flex-wrap gap-3">
+
+                        <button
+                            onClick={() =>
+                                navigate("/upload")
+                            }
+                            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold transition hover:bg-blue-700"
+                        >
+
+                            <Upload
+                                size={17}
+                            />
+
+                            New Scan
+
+                        </button>
+
+
+                        <button
+                            onClick={() =>
+                                navigate("/history")
+                            }
+                            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-700"
+                        >
+
+                            <HistoryIcon
+                                size={17}
+                            />
+
+                            History
+
+                        </button>
+
+
+                        <button
+                            onClick={downloadReport}
+                            disabled={!reportId}
+                            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:border-blue-500/30 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+
+                            <Download
+                                size={17}
+                            />
+
+                            Download PDF
+
+                        </button>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -1102,13 +1422,25 @@ export default function Result() {
                 RAW DATA
             ================================================== */}
 
-            <details className="mt-8">
+            <details className="mt-6 overflow-hidden rounded-3xl border border-slate-800 bg-slate-900">
 
-                <summary className="cursor-pointer text-slate-400">
+                <summary className="flex cursor-pointer items-center gap-3 px-6 py-5 text-sm font-medium text-slate-400 transition hover:text-slate-200">
+
+                    <FileSearch
+                        size={17}
+                    />
+
                     View raw analysis data
+
+                    <ChevronDown
+                        size={16}
+                        className="ml-auto"
+                    />
+
                 </summary>
 
-                <pre className="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-5 overflow-auto text-sm">
+
+                <pre className="max-h-[600px] overflow-auto border-t border-slate-800 bg-slate-950 p-5 text-xs leading-6 text-slate-500">
                     {JSON.stringify(
                         result,
                         null,
@@ -1124,25 +1456,515 @@ export default function Result() {
 
 
 // ============================================================
-// INFO COMPONENT
+// SECTION
 // ============================================================
 
-function Info({
+function Section({
+    icon,
+    title,
+    subtitle,
+    children
+}) {
+
+    return (
+
+        <section className="mt-6 rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl sm:p-7">
+
+            <div className="mb-6">
+
+                <div className="flex items-center gap-2">
+
+                    <span className="text-blue-400">
+                        {icon}
+                    </span>
+
+                    <h2 className="text-xl font-semibold">
+                        {title}
+                    </h2>
+
+                </div>
+
+
+                {subtitle && (
+
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                        {subtitle}
+                    </p>
+
+                )}
+
+            </div>
+
+
+            {children}
+
+        </section>
+    );
+}
+
+
+// ============================================================
+// EVIDENCE CARD
+// ============================================================
+
+function EvidenceCard({
+    icon,
+    title,
+    value,
+    description,
+    type
+}) {
+
+    const numeric =
+        Number(value);
+
+
+    const safe =
+        Number.isFinite(numeric)
+            ? clamp(numeric)
+            : 0;
+
+
+    const real =
+        type === "real";
+
+
+    return (
+
+        <div
+            className={`
+                rounded-3xl border p-6
+                ${
+                    real
+                        ? "border-emerald-500/20 bg-emerald-500/5"
+                        : "border-rose-500/20 bg-rose-500/5"
+                }
+            `}
+        >
+
+            <div className="flex items-start justify-between gap-5">
+
+                <div className="flex items-start gap-3">
+
+                    <div
+                        className={`
+                            rounded-xl p-2.5
+                            ${
+                                real
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : "bg-rose-500/10 text-rose-400"
+                            }
+                        `}
+                    >
+                        {icon}
+                    </div>
+
+
+                    <div>
+
+                        <p className="font-semibold text-slate-200">
+                            {title}
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {description}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <p
+                    className={`
+                        text-3xl font-black tabular-nums
+                        ${
+                            real
+                                ? "text-emerald-300"
+                                : "text-rose-300"
+                        }
+                    `}
+                >
+                    {value}%
+                </p>
+
+            </div>
+
+
+            <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-800">
+
+                <div
+                    className={
+                        `h-full rounded-full ${
+                            real
+                                ? "bg-emerald-400"
+                                : "bg-rose-400"
+                        }`
+                    }
+                    style={{
+                        width: `${safe}%`
+                    }}
+                />
+
+            </div>
+
+        </div>
+    );
+}
+
+
+// ============================================================
+// AUDIO EVIDENCE BAR
+// ============================================================
+
+function AudioEvidenceBar({
+    real,
+    fake
+}) {
+
+    const realValue =
+        Number(real);
+
+
+    const fakeValue =
+        Number(fake);
+
+
+    if (
+        !Number.isFinite(realValue) ||
+        !Number.isFinite(fakeValue)
+    ) {
+        return null;
+    }
+
+
+    return (
+
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+
+            <div className="flex items-center justify-between">
+
+                <div className="flex items-center gap-2">
+
+                    <FileAudio
+                        size={17}
+                        className="text-blue-400"
+                    />
+
+                    <span className="text-sm font-medium text-slate-300">
+                        Voice Evidence Balance
+                    </span>
+
+                </div>
+
+
+                <span className="text-xs text-slate-600">
+                    Real vs Synthetic
+                </span>
+
+            </div>
+
+
+            <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-slate-800">
+
+                <div
+                    className="bg-emerald-400"
+                    style={{
+                        width: `${clamp(realValue)}%`
+                    }}
+                />
+
+                <div
+                    className="bg-rose-400"
+                    style={{
+                        width: `${clamp(fakeValue)}%`
+                    }}
+                />
+
+            </div>
+
+
+            <div className="mt-3 flex justify-between text-xs">
+
+                <span className="text-emerald-400">
+                    Real {realValue.toFixed(2)}%
+                </span>
+
+                <span className="text-rose-400">
+                    Fake {fakeValue.toFixed(2)}%
+                </span>
+
+            </div>
+
+        </div>
+    );
+}
+
+
+// ============================================================
+// AUDIO SEGMENTS
+// ============================================================
+
+function AudioSegments({
+    segments
+}) {
+
+    return (
+
+        <details className="mt-7 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+
+            <summary className="flex cursor-pointer items-center gap-3 px-5 py-4 font-medium text-slate-200">
+
+                <Waves
+                    size={17}
+                    className="text-blue-400"
+                />
+
+                Inspect Audio Segments
+
+                <span className="text-slate-600">
+                    ({segments.length})
+                </span>
+
+                <ChevronDown
+                    size={16}
+                    className="ml-auto text-slate-600"
+                />
+
+            </summary>
+
+
+            <div className="overflow-x-auto border-t border-slate-800">
+
+                <table className="min-w-full text-left text-sm">
+
+                    <thead className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-600">
+
+                        <tr>
+
+                            <th className="px-5 py-3 pr-6">
+                                Segment
+                            </th>
+
+                            <th className="px-5 py-3 pr-6">
+                                Authentic
+                            </th>
+
+                            <th className="px-5 py-3 pr-6">
+                                Synthetic
+                            </th>
+
+                            <th className="px-5 py-3 pr-6">
+                                Reliability
+                            </th>
+
+                            <th className="px-5 py-3">
+                                Agreement
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody className="divide-y divide-slate-800">
+
+                        {segments.map(
+                            (segment, index) => (
+
+                                <tr
+                                    key={
+                                        segment.segment ??
+                                        index
+                                    }
+                                    className="text-slate-300 transition hover:bg-slate-900"
+                                >
+
+                                    <td className="px-5 py-3">
+                                        {segment.segment ??
+                                            index + 1}
+                                    </td>
+
+
+                                    <td className="px-5 py-3 text-emerald-300">
+                                        {percent(
+                                            segment.real_probability
+                                        )}
+                                    </td>
+
+
+                                    <td className="px-5 py-3 text-rose-300">
+                                        {percent(
+                                            segment.fake_probability
+                                        )}
+                                    </td>
+
+
+                                    <td className="px-5 py-3">
+
+                                        {segment.reliability !== undefined
+                                            ? `${(
+                                                Number(
+                                                    segment.reliability
+                                                ) * 100
+                                            ).toFixed(1)}%`
+                                            : "--"}
+
+                                    </td>
+
+
+                                    <td className="px-5 py-3">
+
+                                        {segment.model_agreement !== undefined
+                                            ? `${(
+                                                Number(
+                                                    segment.model_agreement
+                                                ) * 100
+                                            ).toFixed(1)}%`
+                                            : "--"}
+
+                                    </td>
+
+                                </tr>
+
+                            )
+                        )}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </details>
+    );
+}
+
+
+// ============================================================
+// METRIC
+// ============================================================
+
+function Metric({
+    label,
+    value,
+    danger = false
+}) {
+
+    return (
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 transition hover:border-slate-700">
+
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                {label}
+            </p>
+
+
+            <p
+                className={`
+                    mt-2 text-2xl font-bold tabular-nums
+                    ${
+                        danger
+                            ? "text-rose-300"
+                            : "text-slate-100"
+                    }
+                `}
+            >
+                {value}
+            </p>
+
+        </div>
+    );
+}
+
+
+// ============================================================
+// INFO CARD
+// ============================================================
+
+function InfoCard({
     label,
     value
 }) {
 
     return (
 
-        <div className="bg-slate-950 rounded-lg p-4">
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
 
-            <p className="text-sm text-slate-500">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                 {label}
             </p>
 
-            <p className="mt-1 font-medium break-all">
+
+            <p className="mt-2 break-all text-sm font-medium leading-6 text-slate-200">
                 {value}
             </p>
+
+        </div>
+    );
+}
+
+
+// ============================================================
+// QUICK METRIC
+// ============================================================
+
+function QuickMetric({
+    icon,
+    label,
+    value
+}) {
+
+    return (
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+
+            <div className="flex items-center gap-3">
+
+                <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-400">
+                    {icon}
+                </div>
+
+
+                <div className="min-w-0">
+
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                        {label}
+                    </p>
+
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-200">
+                        {value}
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+
+// ============================================================
+// STATUS PILL
+// ============================================================
+
+function StatusPill({
+    label,
+    value
+}) {
+
+    return (
+
+        <div className="rounded-lg border border-white/10 bg-slate-950/40 px-3 py-1.5">
+
+            <span className="text-[10px] uppercase tracking-wider text-slate-600">
+                {label}
+            </span>
+
+            <span className="ml-2 text-xs font-medium text-slate-300">
+                {value}
+            </span>
 
         </div>
     );
@@ -1155,7 +1977,6 @@ function Info({
 
 function ModelCard({
     title,
-    subtitle,
     data
 }) {
 
@@ -1163,17 +1984,13 @@ function ModelCard({
 
         return (
 
-            <div className="bg-slate-950 rounded-xl p-5">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
 
                 <h3 className="font-semibold">
                     {title}
                 </h3>
 
-                <p className="text-slate-500 text-sm mt-1">
-                    {subtitle}
-                </p>
-
-                <p className="text-slate-500 mt-5">
+                <p className="mt-4 text-sm text-slate-600">
                     No model data available.
                 </p>
 
@@ -1200,26 +2017,31 @@ function ModelCard({
 
     return (
 
-        <div className="bg-slate-950 rounded-xl p-5">
+        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
 
-            <h3 className="font-semibold">
-                {title}
-            </h3>
+            <div className="flex items-center gap-2">
 
-            <p className="text-slate-500 text-sm mt-1">
-                {subtitle}
-            </p>
+                <ScanLine
+                    size={16}
+                    className="text-blue-400"
+                />
+
+                <h3 className="font-semibold">
+                    {title}
+                </h3>
+
+            </div>
 
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 grid grid-cols-2 gap-4">
 
                 <div>
 
-                    <p className="text-xs text-slate-500">
-                        REAL
+                    <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                        Authentic
                     </p>
 
-                    <p className="text-xl font-semibold text-green-400">
+                    <p className="mt-1 text-xl font-bold text-emerald-300">
                         {real}%
                     </p>
 
@@ -1228,11 +2050,11 @@ function ModelCard({
 
                 <div>
 
-                    <p className="text-xs text-slate-500">
-                        FAKE / AI
+                    <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                        Synthetic
                     </p>
 
-                    <p className="text-xl font-semibold text-red-400">
+                    <p className="mt-1 text-xl font-bold text-rose-300">
                         {fake}%
                     </p>
 
@@ -1240,6 +2062,255 @@ function ModelCard({
 
             </div>
 
+
+            <div className="mt-4 flex h-1.5 overflow-hidden rounded-full bg-slate-800">
+
+                <div
+                    className="bg-emerald-400"
+                    style={{
+                        width: `${clamp(
+                            Number(real)
+                        )}%`
+                    }}
+                />
+
+                <div
+                    className="bg-rose-400"
+                    style={{
+                        width: `${clamp(
+                            Number(fake)
+                        )}%`
+                    }}
+                />
+
+            </div>
+
         </div>
     );
+}
+
+
+// ============================================================
+// MEDIA ICON
+// ============================================================
+
+function MediaIcon({
+    media
+}) {
+
+    if (media === "video") {
+
+        return (
+            <FileVideo
+                size={17}
+                className="shrink-0 text-violet-400"
+            />
+        );
+    }
+
+
+    if (media === "audio") {
+
+        return (
+            <FileAudio
+                size={17}
+                className="shrink-0 text-amber-400"
+            />
+        );
+    }
+
+
+    if (media === "image") {
+
+        return (
+            <FileImage
+                size={17}
+                className="shrink-0 text-blue-400"
+            />
+        );
+    }
+
+
+    return (
+        <FileText
+            size={17}
+            className="shrink-0 text-slate-500"
+        />
+    );
+}
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function normalizeVerdict(value) {
+
+    const verdict =
+        String(
+            value ||
+            "UNKNOWN"
+        )
+            .toUpperCase()
+            .trim();
+
+
+    if (
+        verdict === "AI GENERATED" ||
+        verdict === "AI-GENERATED" ||
+        verdict === "AI_GENERATED"
+    ) {
+        return "DEEPFAKE";
+    }
+
+
+    return verdict;
+}
+
+
+function percent(value) {
+
+    const number =
+        Number(value);
+
+
+    if (!Number.isFinite(number)) {
+        return "--";
+    }
+
+
+    return `${number.toFixed(2)}%`;
+}
+
+
+function clamp(value) {
+
+    const number =
+        Number(value);
+
+
+    if (!Number.isFinite(number)) {
+        return 0;
+    }
+
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            number
+        )
+    );
+}
+
+
+function capitalize(value) {
+
+    const text =
+        String(
+            value ||
+            "unknown"
+        );
+
+
+    return (
+        text.charAt(0).toUpperCase() +
+        text.slice(1)
+    );
+}
+
+
+function shortenId(value) {
+
+    const text =
+        String(value);
+
+
+    if (text.length <= 18) {
+        return text;
+    }
+
+
+    return `${text.slice(0, 8)}...${text.slice(-6)}`;
+}
+
+
+function countEvidence(result) {
+
+    let count = 0;
+
+
+    if (result.video) {
+        count++;
+    }
+
+    if (result.audio) {
+        count++;
+    }
+
+    if (result.lipsync) {
+        count++;
+    }
+
+    if (result.metadata) {
+        count++;
+    }
+
+    if (result.models) {
+        count++;
+    }
+
+
+    return `${count} signal${count === 1 ? "" : "s"}`;
+}
+
+
+function formatLabel(value) {
+
+    return String(value)
+        .replaceAll("_", " ")
+        .replaceAll("-", " ")
+        .replace(/\b\w/g, (char) =>
+            char.toUpperCase()
+        );
+}
+
+
+function formatBytes(bytes) {
+
+    const value =
+        Number(bytes);
+
+
+    if (!Number.isFinite(value)) {
+        return "--";
+    }
+
+
+    if (value < 1024) {
+        return `${value} B`;
+    }
+
+
+    if (value < 1024 * 1024) {
+
+        return `${(
+            value / 1024
+        ).toFixed(2)} KB`;
+    }
+
+
+    if (value < 1024 * 1024 * 1024) {
+
+        return `${(
+            value /
+            (1024 * 1024)
+        ).toFixed(2)} MB`;
+    }
+
+
+    return `${(
+        value /
+        (1024 * 1024 * 1024)
+    ).toFixed(2)} GB`;
 }
