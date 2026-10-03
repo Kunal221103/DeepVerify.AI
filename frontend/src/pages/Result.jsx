@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -937,50 +938,83 @@ export default function Result() {
 
 
                     {result.video.model_scores && (
+    <div className="mt-7 border-t border-slate-800 pt-6">
 
-                        <div className="mt-7 border-t border-slate-800 pt-6">
+        <div className="flex items-start justify-between gap-4">
 
-                            <div className="flex items-center gap-2">
+            <div>
 
-                                <ScanLine
-                                    size={17}
-                                    className="text-blue-400"
-                                />
+                <div className="flex items-center gap-2">
 
-                                <h3 className="font-semibold">
-                                    Visual Model Evidence
-                                </h3>
+                    <ScanLine
+                        size={17}
+                        className="text-blue-400"
+                    />
 
-                            </div>
+                    <h3 className="font-semibold text-slate-200">
+                        Visual Model Evidence
+                    </h3>
+
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                    Video-specific detection models analyzing
+                    sampled frames.
+                </p>
+
+            </div>
+
+            <span className="hidden rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-400 sm:block">
+                3 Models
+            </span>
+
+        </div>
 
 
-                            <p className="mt-1 text-sm text-slate-500">
-                                Average synthetic-evidence scores across sampled frames.
-                            </p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
+            <VideoModelCard
+                number="02"
+                title="Model 2"
+                value={
+                    result.video.model_scores
+                        .model_2_fake_probability
+                }
+            />
 
-                            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <VideoModelCard
+                number="03"
+                title="Model 3"
+                value={
+                    result.video.model_scores
+                        .model_3_fake_probability
+                }
+                primary
+            />
 
-                                {Object.entries(
-                                    result.video.model_scores
-                                ).map(
-                                    ([name, value]) => (
+            <VideoModelCard
+                number="04"
+                title="Model 4"
+                value={
+                    result.video.model_scores
+                        .model_4_fake_probability
+                }
+                note={
+                    result.video.model_scores
+                        .model_4_outlier_frames > 0
+                        ? `${
+                            result.video.model_scores
+                                .model_4_outlier_frames
+                        } outlier frame(s) excluded`
+                        : "Consensus-checked"
+                }
+            />
 
-                                        <Metric
-                                            key={name}
-                                            label={formatLabel(name)}
-                                            value={percent(value)}
-                                            danger
-                                        />
+        </div>
 
-                                    )
-                                )}
+    </div>
+)}
 
-                            </div>
-
-                        </div>
-
-                    )}
 
                 </Section>
 
@@ -1840,10 +1874,337 @@ function AudioSegments({
     );
 }
 
+function VideoModelCard({
+    number,
+    title,
+    value,
+    primary = false,
+    note = "Frame averaged",
+}) {
+
+    const numericValue = Number(value);
+
+    const safeValue =
+        Number.isFinite(numericValue)
+            ? clamp(numericValue)
+            : 0;
+
+    return (
+        <motion.div
+            initial={{
+                opacity: 0,
+                y: 15,
+            }}
+            animate={{
+                opacity: 1,
+                y: 0,
+            }}
+            transition={{
+                duration: 0.45,
+            }}
+            whileHover={{
+                y: -3,
+            }}
+            className={`
+                group rounded-2xl border p-5
+                transition
+                ${
+                    primary
+                        ? "border-blue-500/25 bg-blue-500/[0.04]"
+                        : "border-slate-800 bg-slate-950/70"
+                }
+                hover:border-slate-700
+            `}
+        >
+
+            {/* HEADER */}
+
+            <div className="flex items-center justify-between">
+
+                <div className="flex items-center gap-3">
+
+                    <div
+                        className={`
+                            flex h-9 w-9 items-center justify-center
+                            rounded-xl text-xs font-bold
+                            ${
+                                primary
+                                    ? "bg-blue-500/10 text-blue-400"
+                                    : "bg-slate-800 text-slate-400"
+                            }
+                        `}
+                    >
+                        {number}
+                    </div>
+
+                    <div>
+
+                        <p className="font-semibold text-slate-200">
+                            {title}
+                        </p>
+
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-600">
+                            Video detector
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <ScanLine
+                    size={16}
+                    className={
+                        primary
+                            ? "text-blue-400"
+                            : "text-slate-600"
+                    }
+                />
+
+            </div>
+
+
+            {/* VALUE */}
+
+            <div className="mt-6 flex items-end gap-1">
+
+                <span className="text-3xl font-black tabular-nums text-rose-300">
+                    {
+                        Number.isFinite(numericValue)
+                            ? numericValue.toFixed(2)
+                            : "--"
+                    }
+                </span>
+
+                <span className="mb-1 text-sm text-slate-600">
+                    %
+                </span>
+
+            </div>
+
+
+            <p className="mt-1 text-xs text-slate-500">
+                Synthetic evidence
+            </p>
+
+
+            {/* PROGRESS */}
+
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-800">
+
+                <motion.div
+                    initial={{
+                        width: 0,
+                    }}
+                    animate={{
+                        width: `${safeValue}%`,
+                    }}
+                    transition={{
+                        duration: 0.9,
+                        ease: "easeOut",
+                    }}
+                    className="h-full rounded-full bg-rose-400"
+                />
+
+            </div>
+
+
+            {/* FOOTER */}
+
+            <div className="mt-3 flex items-center justify-between">
+
+                <span className="text-[10px] uppercase tracking-wider text-slate-600">
+                    Fake probability
+                </span>
+
+                <span className="text-[10px] font-medium text-slate-500">
+                    {note}
+                </span>
+
+            </div>
+
+        </motion.div>
+    );
+}
+
 
 // ============================================================
-// METRIC
+// ANIMATED VERDICT
 // ============================================================
+
+function AnimatedVerdict({
+    verdict,
+    confidence,
+}) {
+
+    const normalized =
+        String(verdict || "")
+            .toUpperCase()
+            .trim();
+
+    const isDeepfake =
+        normalized === "DEEPFAKE" ||
+        normalized === "AI GENERATED" ||
+        normalized === "AI-GENERATED";
+
+    const isAuthentic =
+        normalized === "AUTHENTIC" ||
+        normalized === "REAL";
+
+    const label =
+        isDeepfake
+            ? "DEEPFAKE"
+            : isAuthentic
+                ? "AUTHENTIC"
+                : "SUSPICIOUS";
+
+    const numericConfidence =
+        Number(confidence);
+
+    const safeConfidence =
+        Number.isFinite(numericConfidence)
+            ? clamp(numericConfidence)
+            : 0;
+
+    return (
+        <motion.div
+            initial={{
+                opacity: 0,
+                scale: 0.96,
+                y: 10,
+            }}
+            animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+            }}
+            transition={{
+                duration: 0.55,
+                ease: "easeOut",
+            }}
+        >
+
+            <motion.span
+                initial={{
+                    opacity: 0,
+                    scale: 0.7,
+                }}
+                animate={{
+                    opacity: 1,
+                    scale: 1,
+                }}
+                transition={{
+                    delay: 0.15,
+                    duration: 0.35,
+                }}
+                className={`
+                    inline-flex items-center gap-2
+                    rounded-full border px-3 py-1.5
+                    text-xs font-bold uppercase
+                    tracking-wider
+                    ${
+                        isDeepfake
+                            ? "border-rose-500/20 bg-rose-500/10 text-rose-400"
+                            : isAuthentic
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                                : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+                    }
+                `}
+            >
+
+                <span
+                    className={`
+                        h-1.5 w-1.5 rounded-full
+                        ${
+                            isDeepfake
+                                ? "bg-rose-400"
+                                : isAuthentic
+                                    ? "bg-emerald-400"
+                                    : "bg-amber-400"
+                        }
+                    `}
+                />
+
+                {label}
+
+            </motion.span>
+
+
+            <div className="mt-4 flex items-end gap-2">
+
+                <motion.span
+                    initial={{
+                        opacity: 0,
+                        y: 8,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    transition={{
+                        delay: 0.25,
+                    }}
+                    className="
+                        text-5xl
+                        font-black
+                        tracking-tight
+                        text-slate-100
+                    "
+                >
+                    {safeConfidence.toFixed(2)}
+                </motion.span>
+
+                <span className="mb-2 text-lg text-slate-500">
+                    %
+                </span>
+
+            </div>
+
+
+            <p className="mt-1 text-sm text-slate-500">
+                Detection confidence
+            </p>
+
+
+            <div className="mt-5 max-w-xl">
+
+                <div className="
+                    h-2
+                    overflow-hidden
+                    rounded-full
+                    bg-slate-800
+                ">
+
+                    <motion.div
+                        initial={{
+                            width: 0,
+                        }}
+                        animate={{
+                            width: `${safeConfidence}%`,
+                        }}
+                        transition={{
+                            delay: 0.35,
+                            duration: 1,
+                            ease: "easeOut",
+                        }}
+                        className={`
+                            h-full rounded-full
+                            ${
+                                isDeepfake
+                                    ? "bg-rose-400"
+                                    : isAuthentic
+                                        ? "bg-emerald-400"
+                                        : "bg-amber-400"
+                            }
+                        `}
+                    />
+
+                </div>
+
+            </div>
+
+        </motion.div>
+    );
+}
 
 function Metric({
     label,

@@ -1,10 +1,10 @@
 import os
 import statistics
 
-from ai.inference import predict
 from ai.second_detector import predict_second
 from ai.sdxl_detector import predict_sdxl
 from ai.fourth_detector import predict_fourth
+from ai.video_ensemble import combine_visual_scores
 
 
 IMAGE_EXTENSIONS = (
@@ -18,25 +18,34 @@ IMAGE_EXTENSIONS = (
 
 def _extract_fake_probability(predictions):
     """
-    Convert different model output formats into one fake probability.
+    Convert detector output into a fake probability percentage.
 
-    Supported:
-    - Model 1 -> dictionary
-    - Model 2 -> list of dictionaries
-    - Model 3 -> list of dictionaries
+    Supports:
+        - dictionary outputs with fake_probability
+        - dictionary outputs with raw_predictions
+        - list outputs containing label/confidence
     """
 
+    if predictions is None:
+        return 0.0
+
     # ==========================================================
-    # MODEL 1 - DICTIONARY
+    # DICTIONARY OUTPUT
     # ==========================================================
 
     if isinstance(predictions, dict):
 
         if "fake_probability" in predictions:
 
-            return float(
-                predictions["fake_probability"]
-            )
+            try:
+                return float(
+                    predictions["fake_probability"]
+                )
+            except (
+                TypeError,
+                ValueError
+            ):
+                return 0.0
 
         if "raw_predictions" in predictions:
 
@@ -48,7 +57,7 @@ def _extract_fake_probability(predictions):
             return 0.0
 
     # ==========================================================
-    # LIST-BASED MODELS
+    # LIST OUTPUT
     # ==========================================================
 
     if isinstance(predictions, list):
@@ -65,11 +74,32 @@ def _extract_fake_probability(predictions):
                 item.get("label", "")
             ).lower().strip()
 
-            confidence = float(
-                item.get("confidence", 0)
+            confidence = item.get(
+                "confidence",
+                item.get("score", 0)
             )
 
-            # AI / fake classes
+            try:
+
+                confidence = float(
+                    confidence
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                continue
+
+            # Convert 0-1 scores to percentages
+            if 0 <= confidence <= 1:
+                confidence *= 100
+
+            # --------------------------------------------------
+            # FAKE / SYNTHETIC
+            # --------------------------------------------------
+
             if any(
                 keyword in label
                 for keyword in (
@@ -88,7 +118,10 @@ def _extract_fake_probability(predictions):
                     confidence
                 )
 
-            # Real / human classes
+            # --------------------------------------------------
+            # REAL / HUMAN
+            # --------------------------------------------------
+
             elif any(
                 keyword in label
                 for keyword in (
@@ -104,11 +137,9 @@ def _extract_fake_probability(predictions):
                     confidence
                 )
 
-        # If model explicitly gave fake probability
         if fake > 0:
             return fake
 
-        # If only real was detected
         if real > 0:
             return 100.0 - real
 
@@ -117,88 +148,75 @@ def _extract_fake_probability(predictions):
 
 def _analyze_frame(frame_path):
     """
-    Run all available image detectors on one video frame.
+    Analyze one video frame.
+
+    Model 1 is intentionally excluded.
+
+    Video analysis uses:
+        Model 2
+        Model 3
+        Model 4
     """
-
-    # ==========================================================
-    # MODEL 1
-    # ==========================================================
-
-    model1 = predict(frame_path)
-
-    model1_fake = _extract_fake_probability(
-        model1
-    )
-    
-    print(
-        f"[MODEL 1] {os.path.basename(frame_path)} "
-        f"-> fake={model1_fake:.4f}% "
-        f"real={model1.get('real_probability', 0):.4f}% "
-        f"label={model1.get('predicted_label', 'UNKNOWN')}"
-    ) 
 
     # ==========================================================
     # MODEL 2
     # ==========================================================
 
-    model2 = predict_second(frame_path)
+    model2 = predict_second(
+        frame_path
+    )
 
     model2_fake = _extract_fake_probability(
         model2
     )
 
-    print(
-        f"[MODEL 2] {os.path.basename(frame_path)} "
-        f"-> fake={model2_fake:.4f}% "
-        f"real={model2.get('real_probability', 0):.4f}% "
-        f"label={model2.get('predicted_label', 'UNKNOWN')}"
+    # ==========================================================
+    # MODEL 3
+    # ==========================================================
+
+    model3 = predict_sdxl(
+        frame_path
     )
-
-    # ==========================================================
-    # MODEL 3 - SDXL
-    # ==========================================================
-
-    model3 = predict_sdxl(frame_path)
 
     model3_fake = _extract_fake_probability(
         model3
     )
 
     # ==========================================================
-    # MODEL 4 - Deepfake-vs-real ViT
+    # MODEL 4
     # ==========================================================
 
-    model4 = predict_fourth(frame_path)
+    model4 = predict_fourth(
+        frame_path
+    )
+
     model4_fake = (
-        _extract_fake_probability(model4)
+        _extract_fake_probability(
+            model4
+        )
         if model4 is not None
         else None
     )
 
     # ==========================================================
-    # VIDEO FRAME ENSEMBLE
+    # VIDEO ENSEMBLE
     #
-    # Model 3 is given the highest weight because it showed
-    # the strongest separation in our benchmark.
+    # Model 1 has been completely removed.
+    #
+    # Model 2 = 20%
+    # Model 3 = 55%
+    # Model 4 = 25%
     # ==========================================================
 
-    weighted_scores = [
-        (model1_fake, 0.20),
-        (model2_fake, 0.15),
-        (model3_fake, 0.45),
-    ]
-    if model4_fake is not None:
-        weighted_scores.append((model4_fake, 0.20))
+    ensemble = combine_visual_scores(
+        model2_fake,
+        model3_fake,
+        model4_fake,
+    )
 
-    total_weight = sum(weight for _, weight in weighted_scores)
-    frame_fake = sum(score * weight for score, weight in weighted_scores) / total_weight
+    frame_fake = ensemble["fake_probability"]
 
     return {
-
-        "model_1_fake": round(
-            model1_fake,
-            2
-        ),
 
         "model_2_fake": round(
             model2_fake,
@@ -211,10 +229,26 @@ def _analyze_frame(frame_path):
         ),
 
         "model_4_fake": (
-            round(model4_fake, 2)
+            round(
+                model4_fake,
+                2
+            )
             if model4_fake is not None
             else None
         ),
+
+        "model_4_weight": round(
+            ensemble["model4_weight"],
+            3,
+        ),
+
+        "model_4_consensus_gap": (
+            round(ensemble["model4_consensus_gap"], 2)
+            if ensemble["model4_consensus_gap"] is not None
+            else None
+        ),
+
+        "model_4_status": ensemble["model4_status"],
 
         "frame_fake_probability": round(
             frame_fake,
@@ -226,15 +260,16 @@ def _analyze_frame(frame_path):
 def detect_video(frame_folder):
 
     """
-    Analyze sampled video frames using four independent
-    image detection models.
+    Analyze sampled video frames.
 
-    The result is aggregated across frames to obtain
-    a temporal video-level prediction.
+    Model 1 is NOT used for video analysis.
+
+    Only Models 2, 3 and 4 participate
+    in the video ensemble.
     """
 
     # ==========================================================
-    # FIND FRAMES
+    # FIND VIDEO FRAMES
     # ==========================================================
 
     frames = sorted(
@@ -261,7 +296,7 @@ def detect_video(frame_folder):
         )
 
     # ==========================================================
-    # LIMIT TO 20 FRAMES
+    # LIMIT TO 20 SAMPLED FRAMES
     # ==========================================================
 
     if len(frames) > 20:
@@ -292,25 +327,44 @@ def detect_video(frame_folder):
 
         try:
 
-            result = _analyze_frame(frame)
-            print(
-                f"\nFRAME RESULT: {os.path.basename(frame)}"
+            result = _analyze_frame(
+                frame
             )
+
             print(
-                f"Model 1 : {result['model_1_fake']:.2f}%"
+                f"\nFRAME RESULT: "
+                f"{os.path.basename(frame)}"
             )
+
             print(
-                f"Model 2 : {result['model_2_fake']:.2f}%"
+                f"Model 2: "
+                f"{result['model_2_fake']:.2f}%"
             )
+
             print(
-                f"Model 3 : {result['model_3_fake']:.2f}%"
+                f"Model 3: "
+                f"{result['model_3_fake']:.2f}%"
             )
-            print(
-                f"Model 4 : {result['model_4_fake']:.2f}%"
-                f"{result['model_4_fake']:.2f}%"
-                if result["model_4_fake"] is not None
-                else "Model 4: N/A"
-            )
+
+            if result["model_4_fake"] is not None:
+
+                print(
+                    f"Model 4: "
+                    f"{result['model_4_fake']:.2f}%"
+                )
+
+                print(
+                    f"Model 4 status: "
+                    f"{result['model_4_status']} "
+                    f"(weight {result['model_4_weight']:.3f})"
+                )
+
+            else:
+
+                print(
+                    "Model 4: N/A"
+                )
+
             print(
                 f"Ensemble: "
                 f"{result['frame_fake_probability']:.2f}%"
@@ -334,7 +388,7 @@ def detect_video(frame_folder):
         )
 
     # ==========================================================
-    # COLLECT FRAME SCORES
+    # COLLECT ENSEMBLE SCORES
     # ==========================================================
 
     fake_scores = [
@@ -342,10 +396,9 @@ def detect_video(frame_folder):
         for item in frame_results
     ]
 
-    model1_scores = [
-        item["model_1_fake"]
-        for item in frame_results
-    ]
+    # ==========================================================
+    # INDIVIDUAL MODEL SCORES
+    # ==========================================================
 
     model2_scores = [
         item["model_2_fake"]
@@ -363,11 +416,38 @@ def detect_video(frame_folder):
         if item["model_4_fake"] is not None
     ]
 
+    model4_used_frames = sum(
+        item["model_4_weight"] > 0
+        for item in frame_results
+    )
+
+    model4_outlier_frames = sum(
+        item["model_4_status"] == "excluded_outlier"
+        for item in frame_results
+    )
+
+    # ==========================================================
+    # MODEL AVERAGES
+    # ==========================================================
+
+    avg_model2 = statistics.mean(
+        model2_scores
+    )
+
+    avg_model3 = statistics.mean(
+        model3_scores
+    )
+
+    avg_model4 = (
+        statistics.mean(
+            model4_scores
+        )
+        if model4_scores
+        else None
+    )
+
     # ==========================================================
     # TEMPORAL AGGREGATION
-    #
-    # Median protects against unusual individual frames.
-    # Mean captures the overall video behaviour.
     # ==========================================================
 
     mean_fake = statistics.mean(
@@ -383,10 +463,12 @@ def detect_video(frame_folder):
         + mean_fake * 0.30
     )
 
-    video_real = 100.0 - video_fake
+    video_real = (
+        100.0 - video_fake
+    )
 
     # ==========================================================
-    # FRAME-LEVEL FAKE RATIO
+    # FAKE FRAME RATIO
     # ==========================================================
 
     fake_frames = sum(
@@ -401,29 +483,7 @@ def detect_video(frame_folder):
     ) * 100
 
     # ==========================================================
-    # MODEL AVERAGES
-    # ==========================================================
-
-    avg_model1 = statistics.mean(
-        model1_scores
-    )
-
-    avg_model2 = statistics.mean(
-        model2_scores
-    )
-
-    avg_model3 = statistics.mean(
-        model3_scores
-    )
-
-    avg_model4 = (
-        statistics.mean(model4_scores)
-        if model4_scores
-        else None
-    )
-
-    # ==========================================================
-    # RESULT
+    # FINAL RESULT
     # ==========================================================
 
     return {
@@ -454,13 +514,12 @@ def detect_video(frame_folder):
             2
         ),
 
-        "model_scores": {
+        # ------------------------------------------------------
+        # IMPORTANT:
+        # Model 1 is completely absent.
+        # ------------------------------------------------------
 
-            "model_1_fake_probability":
-                round(
-                    avg_model1,
-                    2
-                ),
+        "model_scores": {
 
             "model_2_fake_probability":
                 round(
@@ -475,10 +534,17 @@ def detect_video(frame_folder):
                 ),
 
             "model_4_fake_probability": (
-                round(avg_model4, 2)
+                round(
+                    avg_model4,
+                    2
+                )
                 if avg_model4 is not None
                 else None
             ),
+
+            "model_4_used_frames": model4_used_frames,
+
+            "model_4_outlier_frames": model4_outlier_frames,
         },
 
         "aggregation": {
@@ -498,5 +564,4 @@ def detect_video(frame_folder):
 
         "model":
             "DeepVerify Video Ensemble",
-
     }
